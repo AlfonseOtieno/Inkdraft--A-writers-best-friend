@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f0e0c" />
+  <meta name="description" content="Inkdraft — Scan your handwriting. Own your words." />
+  <title>Inkdraft</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── TOKENS ──────────────────────────────────────────── */
+    :root {
+      --ink:       #1a1814;
+      --ink-2:     #3a3730;
+      --ink-3:     #6b6760;
+      --paper:     #f5f0e8;
+      --paper-2:   #ede8dc;
+      --paper-3:   #e0d9cc;
+      --accent:    #b5451b;
+      --accent-2:  #d4692e;
+      --ai-accent: #2c5f6e;
+      --ai-light:  #e8f4f7;
+      --warn:      #c0392b;
+      --success:   #2d6a4f;
+      --shadow-sm: 0 1px 3px rgba(26,24,20,0.08);
+      --shadow-md: 0 4px 16px rgba(26,24,20,0.10);
+      --shadow-lg: 0 12px 40px rgba(26,24,20,0.14);
+      --radius:    6px;
+      --radius-lg: 12px;
+      --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+      --font-serif: 'Lora', Georgia, serif;
+      --font-mono:  'JetBrains Mono', monospace;
+      --font-ui:    'DM Sans', sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --ink:       #f0ebe0;
+      --ink-2:     #c8c2b4;
+      --ink-3:     #8a8478;
+      --paper:     #141210;
+      --paper-2:   #1e1c18;
+      --paper-3:   #282520;
+      --accent:    #d4692e;
+      --accent-2:  #e8845a;
+      --ai-accent: #4a9ab0;
+      --ai-light:  #0e2a33;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+    }
+
+    /* ── RESET ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100dvh;
+      transition: background var(--transition), color var(--transition);
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN OVERLAY ───────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.35;
+    }
+
+    /* ── NAV ─────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--paper);
+      border-bottom: 1px solid var(--paper-3);
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(8px);
+      transition: background var(--transition);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      text-decoration: none;
+    }
+    .nav-logo-word {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .nav-logo-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-bottom: 3px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-3);
+      transition: all var(--transition);
+      font-size: 1rem;
+    }
+    .btn-icon:hover { background: var(--paper-2); color: var(--ink); }
+
+    /* ── HERO / UPLOAD ZONE ──────────────────────────────── */
+    #upload-zone {
+      min-height: calc(100dvh - 56px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      gap: 2rem;
+      transition: opacity 0.4s;
+    }
+
+    .hero-heading {
+      text-align: center;
+    }
+    .hero-heading h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--ink);
+    }
+    .hero-heading h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-heading p {
+      margin-top: 0.75rem;
+      font-size: 1rem;
+      color: var(--ink-3);
+      font-weight: 300;
+      letter-spacing: 0.01em;
+    }
+
+    .upload-card {
+      width: 100%;
+      max-width: 520px;
+      border: 2px dashed var(--paper-3);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      background: var(--paper-2);
+    }
+    .upload-card:hover, .upload-card.dragover {
+      border-color: var(--accent);
+      background: var(--paper);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+      opacity: 0.6;
+    }
+    .upload-card h3 {
+      font-family: var(--font-serif);
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--ink);
+    }
+    .upload-card p {
+      font-size: 0.85rem;
+      color: var(--ink-3);
+      line-height: 1.6;
+    }
+    .upload-card input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+      max-width: 520px;
+      color: var(--ink-3);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .upload-divider::before, .upload-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--paper-3);
+    }
+
+    .btn-camera {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      color: var(--ink-2);
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      font-weight: 400;
+      cursor: pointer;
+      transition: all var(--transition);
+      letter-spacing: 0.01em;
+    }
+    .btn-camera:hover {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    /* ── EDITOR WORKSPACE ────────────────────────────────── */
+    #workspace {
+      display: none;
+      flex-direction: column;
+      min-height: calc(100dvh - 56px);
+      padding: 1.5rem;
+      gap: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    #workspace.active { display: flex; }
+
+    /* Toolbar */
+    .workspace-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-ghost {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: transparent;
+      color: var(--ink-3);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .btn-ghost:hover { background: var(--paper-2); color: var(--ink); }
+
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--accent-2); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-ai {
+      background: var(--ai-accent);
+    }
+    .btn-ai:hover { background: #3a7a8e; }
+
+    /* ── PANELS GRID ─────────────────────────────────────── */
+    .panels-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 1rem;
+      flex: 1;
+    }
+
+    @media (max-width: 768px) {
+      .panels-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── PANEL ───────────────────────────────────────────── */
+    .panel {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      overflow: hidden;
+      transition: all var(--transition);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+    }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.focused {
+      position: fixed;
+      inset: 56px 0 0 0;
+      z-index: 200;
+      border-radius: 0;
+      border: none;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--paper-3);
+      cursor: pointer;
+      user-select: none;
+      background: var(--paper);
+      transition: background var(--transition);
+      min-height: 44px;
+    }
+    .panel-header:hover { background: var(--paper-2); }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .panel-title .panel-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .panel-title.original .panel-dot { background: var(--accent); }
+    .panel-title.source .panel-dot { background: var(--ink-3); }
+    .panel-title.prompt .panel-dot { background: #8b6914; }
+    .panel-title.ai .panel-dot { background: var(--ai-accent); }
+
+    .panel-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .panel-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--ink-3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      transition: all var(--transition);
+    }
+    .panel-btn:hover { background: var(--paper-3); color: var(--ink); }
+
+    .char-count {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--ink-3);
+      opacity: 0.7;
+      padding: 0 0.5rem;
+    }
+
+    .panel-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 220px;
+    }
+
+    /* ── SOURCE PANEL ────────────────────────────────────── */
+    #panel-source .panel-body {
+      min-height: 120px;
+    }
+    #source-preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    #source-preview img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: var(--radius);
+      object-fit: contain;
+      box-shadow: var(--shadow-md);
+    }
+    #source-preview.empty {
+      color: var(--ink-3);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    /* ── OCR STATUS ──────────────────────────────────────── */
+    .ocr-status {
+      padding: 0.6rem 1rem;
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      border-top: 1px solid var(--paper-3);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+    }
+    .ocr-status .spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--paper-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ORIGINAL TEXT PANEL ─────────────────────────────── */
+    #original-text {
+      flex: 1;
+      padding: 1.25rem;
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      resize: none;
+      outline: none;
+      width: 100%;
+      min-height: 260px;
+      caret-color: var(--accent);
+    }
+    #original-text::placeholder { color: var(--ink-3); opacity: 0.5; }
+    #original-text .uncertain { color: var(--warn); text-decoration: underline wavy var(--warn); }
+
+    /* Render layer for highlighted text */
+    .text-render-layer {
+      flex: 1;
+      padding: 1.25rem;
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-y: auto;
+      min-height: 260px;
+      position: relative;
+    }
+    .text-render-layer .uncertain {
+      color: var(--warn);
+      text-decoration: underline wavy var(--warn);
+      cursor: help;
+      position: relative;
+    }
+    .text-render-layer .grammar-error {
+      text-decoration: underline var(--warn);
+    }
+
+    /* Editable area wrapper */
+    .original-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── PROMPT PANEL ────────────────────────────────────── */
+    .prompt-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .prompt-label {
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+    #prompt-input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      min-height: 80px;
+      transition: border-color var(--transition);
+      caret-color: var(--ai-accent);
+    }
+    #prompt-input:focus { border-color: var(--ai-accent); }
+    #prompt-input::placeholder { color: var(--ink-3); opacity: 0.5; }
+
+    .prompt-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .prompt-tag {
+      padding: 0.3rem 0.65rem;
+      border-radius: 20px;
+      border: 1px solid var(--paper-3);
+      background: var(--paper);
+      color: var(--ink-3);
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .prompt-tag:hover {
+      border-color: var(--ai-accent);
+      color: var(--ai-accent);
+      background: var(--ai-light);
+    }
+
+    /* ── AI TEXT PANEL ───────────────────────────────────── */
+    .ai-panel-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #ai-text-display {
+      flex: 1;
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      line-height: 1.85;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-y: auto;
+      min-height: 260px;
+      position: relative;
+    }
+    #ai-text-display.empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-3);
+      font-size: 0.85rem;
+      text-align: center;
+      font-family: var(--font-ui);
+    }
+    #ai-text-display .cursor-blink {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--ai-accent);
+      margin-left: 1px;
+      vertical-align: text-bottom;
+      animation: blink 0.7s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .ai-footer {
+      padding: 0.6rem 1rem;
+      border-top: 1px solid var(--paper-3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .ai-model-tag {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--ai-accent);
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── SAVE MODAL ──────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,24,20,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition);
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--paper);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--paper-3);
+      padding: 2rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(16px);
+      transition: transform var(--transition);
+    }
+    .modal-backdrop.open .modal { transform: translateY(0); }
+    .modal h3 {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .modal p {
+      font-size: 0.85rem;
+      color: var(--ink-3);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .save-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .save-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+    }
+    .save-item:hover { background: var(--paper-2); }
+    .save-item.checked { border-color: var(--accent); background: rgba(181,69,27,0.05); }
+    .save-item input[type="checkbox"] { display: none; }
+    .save-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1.5px solid var(--paper-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      flex-shrink: 0;
+      transition: all var(--transition);
+    }
+    .save-item.checked .save-checkbox {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .save-item-label { font-size: 0.88rem; }
+    .save-item-desc { font-size: 0.75rem; color: var(--ink-3); margin-top: 1px; }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    /* ── TOAST ───────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--ink);
+      color: var(--paper);
+      padding: 0.65rem 1.2rem;
+      border-radius: 20px;
+      font-size: 0.84rem;
+      font-weight: 400;
+      z-index: 9000;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── INSTALL BANNER ──────────────────────────────────── */
+    #install-banner {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--paper);
+      border: 1px solid var(--paper-3);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      box-shadow: var(--shadow-lg);
+      z-index: 300;
+      max-width: 300px;
+      transform: translateY(120px);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #install-banner.show { transform: translateY(0); }
+    #install-banner h4 {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+    #install-banner p {
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      margin-bottom: 0.85rem;
+      line-height: 1.5;
+    }
+    .banner-actions { display: flex; gap: 0.5rem; }
+
+    /* ── LOADING OVERLAY ─────────────────────────────────── */
+    #ocr-loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(245,240,232,0.85);
+      backdrop-filter: blur(6px);
+      z-index: 400;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+    }
+    [data-theme="dark"] #ocr-loading { background: rgba(20,18,16,0.85); }
+    #ocr-loading.active { display: flex; }
+    .ocr-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .ocr-loader-ring {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--paper-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    .ocr-loader p {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      color: var(--ink-2);
+      font-style: italic;
+    }
+    .ocr-loader small {
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      font-family: var(--font-mono);
+    }
+
+    /* ── RESPONSIVE HELPERS ──────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      #workspace { padding: 1rem; }
+      .workspace-toolbar { gap: 0.5rem; }
+    }
+
+    @media (min-width: 1200px) {
+      .panels-grid {
+        grid-template-rows: auto 1fr;
+      }
+    }
+
+    /* panel spanning */
+    .panel-source-row {
+      grid-column: 1 / -1;
+    }
+    .panel-prompt-row {
+      grid-column: 1 / -1;
+    }
+
+    /* ── ANIMATIONS ──────────────────────────────────────── */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .panel { animation: fadeSlideUp 0.35s ease both; }
+    .panel:nth-child(2) { animation-delay: 0.05s; }
+    .panel:nth-child(3) { animation-delay: 0.10s; }
+    .panel:nth-child(4) { animation-delay: 0.15s; }
+
+    /* copy flash */
+    @keyframes copyFlash {
+      0%   { background: var(--ai-accent); }
+      100% { background: transparent; }
+    }
+    .copy-flash { animation: copyFlash 0.4s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#" onclick="resetToUpload()">
+      <span class="nav-logo-word">Inkdraft</span>
+      <span class="nav-logo-dot"></span>
+    </a>
+    <div class="nav-actions">
+      <button class="btn-icon" id="theme-toggle" title="Toggle theme" onclick="toggleTheme()">☀</button>
+      <button class="btn-icon" id="save-btn" title="Save session" onclick="openSaveModal()" style="display:none">⬇</button>
+      <button class="btn-icon" id="new-scan-btn" title="New scan" onclick="resetToUpload()" style="display:none">+</button>
+    </div>
+  </nav>
+
+  <!-- UPLOAD ZONE -->
+  <div id="upload-zone">
+    <div class="hero-heading">
+      <h1>Your words,<br /><em>exactly as written.</em></h1>
+      <p>Scan handwritten text. Edit in your voice. Let AI suggest — never replace.</p>
+    </div>
+
+    <div class="upload-card" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)" />
+      <span class="upload-icon">🖼</span>
+      <h3>Drop your photo here</h3>
+      <p>Drag & drop or click to upload a photo of your handwritten text.<br/>JPG, PNG, HEIC supported.</p>
+    </div>
+
+    <div class="upload-divider">or</div>
+
+    <button class="btn-camera" onclick="triggerCamera()">
+      <span>📷</span> Use Camera
+    </button>
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(event)" />
+  </div>
+
+  <!-- WORKSPACE -->
+  <div id="workspace">
+    <div class="workspace-toolbar">
+      <div class="toolbar-left">
+        <span style="font-family:var(--font-serif);font-size:0.9rem;color:var(--ink-3);font-style:italic;">Session active</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-ghost" onclick="copyText('original')">⎘ Copy original</button>
+        <button class="btn-ghost" onclick="copyText('ai')">⎘ Copy AI</button>
+      </div>
+    </div>
+
+    <div class="panels-grid" id="panels-grid">
+
+      <!-- SOURCE PANEL -->
+      <div class="panel panel-source-row" id="panel-source">
+        <div class="panel-header" onclick="togglePanel('panel-source')">
+          <span class="panel-title source">
+            <span class="panel-dot"></span>
+            Source Image
+          </span>
+          <div class="panel-controls" onclick="e => e.stopPropagation()">
+            <span class="char-count" id="source-status">—</span>
+            <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-source')" title="Collapse">
+              <span id="panel-source-chevron">▲</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="source-preview" class="empty">
+            <span>No image loaded</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORIGINAL TEXT PANEL -->
+      <div class="panel" id="panel-original">
+        <div class="panel-header" onclick="togglePanel('panel-original')">
+          <span class="panel-title original">
+            <span class="panel-dot"></span>
+            Your Text
+          </span>
+          <div class="panel-controls">
+            <span class="char-count" id="original-char-count">0 chars</span>
+            <button class="panel-btn" onclick="event.stopPropagation(); copyText('original')" title="Copy">⎘</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-original')" title="Focus">⛶</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-original')" title="Collapse">
+              <span id="panel-original-chevron">▲</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="original-wrapper">
+            <div class="text-render-layer" id="original-render" style="display:none"></div>
+            <textarea
+              id="original-text"
+              placeholder="Your scanned text will appear here — exactly as written. You can also type or paste directly."
+              oninput="onOriginalInput()"
+              spellcheck="false"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROMPT PANEL -->
+      <div class="panel" id="panel-prompt">
+        <div class="panel-header" onclick="togglePanel('panel-prompt')">
+          <span class="panel-title prompt">
+            <span class="panel-dot"></span>
+            Prompt
+          </span>
+          <div class="panel-controls">
+            <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-prompt')" title="Collapse">
+              <span id="panel-prompt-chevron">▲</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="prompt-body">
+            <p class="prompt-label">Tell the AI how to approach your text. Leave the meaning alone — only style, tone, or structure.</p>
+            <textarea id="prompt-input" placeholder="e.g. Remove repetition and tighten the sentences, but keep my voice intact." rows="3"></textarea>
+            <div class="prompt-suggestions">
+              <span class="prompt-tag" onclick="appendPrompt('Remove repetition')">Remove repetition</span>
+              <span class="prompt-tag" onclick="appendPrompt('Make it more philosophical')">More philosophical</span>
+              <span class="prompt-tag" onclick="appendPrompt('Tighten the sentences')">Tighten sentences</span>
+              <span class="prompt-tag" onclick="appendPrompt('Simplify language')">Simplify language</span>
+              <span class="prompt-tag" onclick="appendPrompt('Add more depth')">Add depth</span>
+              <span class="prompt-tag" onclick="appendPrompt('Fix grammar only, change nothing else')">Grammar only</span>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button class="btn-primary btn-ai" id="generate-btn" onclick="generateAI()" disabled>
+                <span>✦</span> Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI TEXT PANEL -->
+      <div class="panel" id="panel-ai">
+        <div class="panel-header" onclick="togglePanel('panel-ai')">
+          <span class="panel-title ai">
+            <span class="panel-dot"></span>
+            Inkdraft AI
+          </span>
+          <div class="panel-controls">
+            <span class="char-count" id="ai-char-count">0 chars</span>
+            <button class="panel-btn" onclick="event.stopPropagation(); copyText('ai')" title="Copy">⎘</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-ai')" title="Focus">⛶</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-ai')" title="Collapse">
+              <span id="panel-ai-chevron">▲</span>
+            </button>
+          </div>
+        </div>
+        <div class="panel-body ai-panel-body">
+          <div id="ai-text-display" class="empty">
+            <span>Write a prompt above and press Generate.<br/>AI will type here in real time.</span>
+          </div>
+          <div class="ai-footer">
+            <span class="ai-model-tag" id="ai-model-tag">—</span>
+            <button class="btn-ghost" style="font-size:0.78rem;" onclick="copyText('ai')">⎘ Copy</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OCR LOADING -->
+  <div id="ocr-loading">
+    <div class="ocr-loader">
+      <div class="ocr-loader-ring"></div>
+      <p>Reading your handwriting…</p>
+      <small id="ocr-loading-sub">Extracting text from image</small>
+    </div>
+  </div>
+
+  <!-- SAVE MODAL -->
+  <div class="modal-backdrop" id="save-modal">
+    <div class="modal">
+      <h3>Save your session</h3>
+      <p>Choose what to include in the saved file. Each selection will be exported as a plain text document.</p>
+      <div class="save-checklist">
+        <label class="save-item" id="save-item-original">
+          <input type="checkbox" id="save-original" checked />
+          <span class="save-checkbox">✓</span>
+          <div>
+            <div class="save-item-label">Your Original Text</div>
+            <div class="save-item-desc">The scanned or typed version, as-is</div>
+          </div>
+        </label>
+        <label class="save-item checked" id="save-item-ai">
+          <input type="checkbox" id="save-ai" />
+          <span class="save-checkbox"></span>
+          <div>
+            <div class="save-item-label">AI Generated Version</div>
+            <div class="save-item-desc">The AI suggestion based on your prompt</div>
+          </div>
+        </label>
+        <label class="save-item" id="save-item-prompt">
+          <input type="checkbox" id="save-prompt" />
+          <span class="save-checkbox"></span>
+          <div>
+            <div class="save-item-label">Prompt Used</div>
+            <div class="save-item-desc">The instruction you gave to the AI</div>
+          </div>
+        </label>
+        <label class="save-item" id="save-item-image">
+          <input type="checkbox" id="save-image" />
+          <span class="save-checkbox"></span>
+          <div>
+            <div class="save-item-label">Source Image</div>
+            <div class="save-item-desc">Download the original scanned photo</div>
+          </div>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeSaveModal()">Cancel</button>
+        <button class="btn-primary" onclick="executeSave()">⬇ Save Selected</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTALL BANNER -->
+  <div id="install-banner">
+    <h4>Install Inkdraft</h4>
+    <p>Add to your home screen for the full writer's experience — offline, distraction-free.</p>
+    <div class="banner-actions">
+      <button class="btn-ghost" onclick="dismissInstall()">Not now</button>
+      <button class="btn-primary" onclick="installPWA()">Install</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <!-- TESSERACT OCR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+
+  <script>
+  // ── STATE ──────────────────────────────────────────────
+  const state = {
+    theme: localStorage.getItem('inkdraft-theme') || 'light',
+    originalText: '',
+    aiText: '',
+    promptText: '',
+    sourceImageSrc: null,
+    isGenerating: false,
+    focusedPanel: null,
+    deferredInstall: null,
+  };
+
+  // ── INIT ───────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(state.theme);
+    setupDragDrop();
+    setupSaveCheckboxes();
+    setupInstallBanner();
+    updateThemeIcon();
+  });
+
+  // ── THEME ──────────────────────────────────────────────
+  function toggleTheme() {
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('inkdraft-theme', state.theme);
+    applyTheme(state.theme);
+    updateThemeIcon();
+  }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+  }
+  function updateThemeIcon() {
+    document.getElementById('theme-toggle').textContent = state.theme === 'dark' ? '☀' : '☽';
+  }
+
+  // ── DRAG AND DROP ──────────────────────────────────────
+  function setupDragDrop() {
+    const zone = document.getElementById('drop-zone');
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) processImage(file);
+    });
+  }
+
+  // ── FILE / CAMERA ──────────────────────────────────────
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) processImage(file);
+  }
+  function triggerCamera() {
+    document.getElementById('camera-input').click();
+  }
+
+  // ── PROCESS IMAGE ──────────────────────────────────────
+  function processImage(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      state.sourceImageSrc = e.target.result;
+      showOCRLoading(true);
+      runOCR(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showOCRLoading(show) {
+    const el = document.getElementById('ocr-loading');
+    el.classList.toggle('active', show);
+  }
+
+  // ── OCR ────────────────────────────────────────────────
+  async function runOCR(imageSrc) {
+    try {
+      updateOCRStatus('Initialising engine…');
+      const worker = await Tesseract.createWorker('eng', 1, {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            updateOCRStatus(`Reading… ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+
+      const result = await worker.recognize(imageSrc);
+      await worker.terminate();
+
+      const rawText = result.data.text.trim();
+      const processedText = markUncertainWords(result.data, rawText);
+
+      showWorkspace(imageSrc, rawText, processedText);
+    } catch (err) {
+      showOCRLoading(false);
+      showToast('OCR failed — please try a clearer image');
+      console.error(err);
+    }
+  }
+
+  function updateOCRStatus(msg) {
+    const el = document.getElementById('ocr-loading-sub');
+    if (el) el.textContent = msg;
+  }
+
+  function markUncertainWords(data, rawText) {
+    // Mark low-confidence words with a special marker
+    let annotated = rawText;
+    const words = data.words || [];
+    const uncertain = words
+      .filter(w => w.confidence < 65 && w.text.trim().length > 0)
+      .map(w => w.text.trim());
+
+    // Store uncertain words for render
+    state.uncertainWords = [...new Set(uncertain)];
+    return rawText;
+  }
+
+  // ── SHOW WORKSPACE ─────────────────────────────────────
+  function showWorkspace(imageSrc, rawText, processedText) {
+    showOCRLoading(false);
+
+    // Hide upload, show workspace
+    document.getElementById('upload-zone').style.display = 'none';
+    const ws = document.getElementById('workspace');
+    ws.classList.add('active');
+
+    // Show nav buttons
+    document.getElementById('save-btn').style.display = 'flex';
+    document.getElementById('new-scan-btn').style.display = 'flex';
+
+    // Source preview
+    const preview = document.getElementById('source-preview');
+    preview.classList.remove('empty');
+    preview.innerHTML = `<img src="${imageSrc}" alt="Scanned document" />`;
+    document.getElementById('source-status').textContent = 'Loaded';
+
+    // Collapse source panel by default
+    togglePanel('panel-source', true);
+
+    // Set original text
+    const textarea = document.getElementById('original-text');
+    textarea.value = rawText;
+    state.originalText = rawText;
+
+    // Render with highlights
+    renderOriginalWithHighlights(rawText);
+    updateOriginalCharCount();
+
+    // Enable generate
+    document.getElementById('generate-btn').disabled = rawText.trim().length === 0;
+
+    // Show the render layer instead of textarea
+    // (we keep textarea for editing, render layer for display)
+    // Actually keep textarea visible for editing
+    if (state.uncertainWords && state.uncertainWords.length > 0) {
+      showToast(`⚠ ${state.uncertainWords.length} word(s) may need your review`);
+    } else {
+      showToast('✓ Text extracted successfully');
+    }
+  }
+
+  function renderOriginalWithHighlights(text) {
+    const render = document.getElementById('original-render');
+    if (!state.uncertainWords || state.uncertainWords.length === 0) return;
+
+    let html = escapeHtml(text);
+    state.uncertainWords.forEach(word => {
+      const escaped = escapeHtml(word);
+      const regex = new RegExp(`\\b${escaped}\\b`, 'g');
+      html = html.replace(regex, `<span class="uncertain" title="Low confidence — please verify">${escaped}</span>`);
+    });
+    render.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/\n/g, '<br/>');
+  }
+
+  // ── ORIGINAL TEXT EVENTS ───────────────────────────────
+  function onOriginalInput() {
+    const textarea = document.getElementById('original-text');
+    state.originalText = textarea.value;
+    updateOriginalCharCount();
+    document.getElementById('generate-btn').disabled = state.originalText.trim().length === 0;
+  }
+
+  function updateOriginalCharCount() {
+    const count = state.originalText.length;
+    const words = state.originalText.trim() ? state.originalText.trim().split(/\s+/).length : 0;
+    document.getElementById('original-char-count').textContent = `${count} chars · ${words} words`;
+  }
+
+  // ── PROMPT SUGGESTIONS ─────────────────────────────────
+  function appendPrompt(text) {
+    const input = document.getElementById('prompt-input');
+    const current = input.value.trim();
+    input.value = current ? current + '. ' + text : text;
+    input.focus();
+  }
+
+  // ── AI GENERATION ──────────────────────────────────────
+  async function generateAI() {
+    if (state.isGenerating) return;
+    const prompt = document.getElementById('prompt-input').value.trim();
+    const original = state.originalText.trim();
+
+    if (!original) {
+      showToast('Please add your original text first');
+      return;
+    }
+
+    state.isGenerating = true;
+    const btn = document.getElementById('generate-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;display:inline-block;animation:spin 0.8s linear infinite;"></span> Generating…';
+
+    const aiDisplay = document.getElementById('ai-text-display');
+    aiDisplay.classList.remove('empty');
+    aiDisplay.innerHTML = '<span class="cursor-blink"></span>';
+
+    const systemPrompt = `You are a writing assistant for Inkdraft. Your role is sacred: you must NEVER rewrite the author's text wholesale. You assist, you never replace.
+
+Rules:
+1. The author's voice, rhythm, and intent must be preserved above all else.
+2. Apply ONLY what the user explicitly requests in their prompt.
+3. If no prompt is given, make light grammar corrections only — change nothing else.
+4. Do not add new ideas, sentences, or meaning that weren't in the original.
+5. Output ONLY the improved text — no preamble, no explanation, no commentary.
+6. Preserve paragraph breaks exactly as they appear in the original.`;
+
+    const userMessage = prompt
+      ? `Here is my text:\n\n${original}\n\nInstruction: ${prompt}`
+      : `Here is my text. Please correct grammar and spelling only — do not change my voice, style, or meaning:\n\n${original}`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userMessage }]
+        })
+      });
+
+      const data = await response.json();
+      const fullText = data.content?.map(b => b.text || '').join('') || '';
+
+      state.aiText = fullText;
+      document.getElementById('ai-model-tag').textContent = 'claude-sonnet · inkdraft';
+
+      await typewriterDisplay(aiDisplay, fullText);
+      updateAICharCount(fullText);
+
+    } catch (err) {
+      aiDisplay.classList.add('empty');
+      aiDisplay.innerHTML = '<span>Generation failed. Check your connection and try again.</span>';
+      console.error(err);
+    }
+
+    state.isGenerating = false;
+    btn.disabled = false;
+    btn.innerHTML = '<span>✦</span> Regenerate';
+  }
+
+  async function typewriterDisplay(element, text) {
+    element.innerHTML = '';
+    let i = 0;
+    const chunkSize = 3; // chars per tick for faster feel
+    const delay = 18;    // ms per tick
+
+    return new Promise(resolve => {
+      function tick() {
+        if (i >= text.length) {
+          resolve();
+          return;
+        }
+        const chunk = text.slice(i, i + chunkSize);
+        i += chunkSize;
+
+        // Remove old cursor
+        const old = element.querySelector('.cursor-blink');
+        if (old) old.remove();
+
+        // Add text
+        const textNode = document.createTextNode(chunk);
+        element.appendChild(textNode);
+
+        // Add cursor
+        const cursor = document.createElement('span');
+        cursor.className = 'cursor-blink';
+        element.appendChild(cursor);
+
+        // Auto-scroll
+        element.scrollTop = element.scrollHeight;
+
+        setTimeout(tick, delay);
+      }
+      tick();
+    });
+  }
+
+  function updateAICharCount(text) {
+    const count = text.length;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById('ai-char-count').textContent = `${count} chars · ${words} words`;
+  }
+
+  // ── COPY ───────────────────────────────────────────────
+  function copyText(which) {
+    const text = which === 'original'
+      ? state.originalText
+      : state.aiText;
+
+    if (!text) {
+      showToast(which === 'original' ? 'No original text yet' : 'No AI text generated yet');
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`✓ ${which === 'original' ? 'Original' : 'AI'} text copied`);
+    }).catch(() => {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(`✓ Copied`);
+    });
+  }
+
+  // ── PANELS ─────────────────────────────────────────────
+  function togglePanel(id, forceCollapse = false) {
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    const isCollapsed = panel.classList.contains('collapsed');
+    if (forceCollapse) {
+      panel.classList.add('collapsed');
+    } else {
+      panel.classList.toggle('collapsed');
+    }
+    const chevron = document.getElementById(`${id}-chevron`);
+    if (chevron) {
+      chevron.textContent = panel.classList.contains('collapsed') ? '▼' : '▲';
+    }
+  }
+
+  function focusPanel(id) {
+    if (state.focusedPanel === id) {
+      // Unfocus
+      const panel = document.getElementById(id);
+      panel.classList.remove('focused');
+      state.focusedPanel = null;
+      document.body.style.overflow = '';
+    } else {
+      // Unfocus previous
+      if (state.focusedPanel) {
+        document.getElementById(state.focusedPanel)?.classList.remove('focused');
+      }
+      const panel = document.getElementById(id);
+      panel.classList.add('focused');
+      state.focusedPanel = id;
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  // ── SAVE MODAL ─────────────────────────────────────────
+  function setupSaveCheckboxes() {
+    document.querySelectorAll('.save-item').forEach(item => {
+      const cb = item.querySelector('input[type="checkbox"]');
+      // Set initial checked state
+      if (cb.checked) item.classList.add('checked');
+      item.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        cb.checked = !cb.checked;
+        item.classList.toggle('checked', cb.checked);
+        // Update checkbox display
+        const box = item.querySelector('.save-checkbox');
+        box.textContent = cb.checked ? '✓' : '';
+      });
+    });
+  }
+
+  function openSaveModal() {
+    document.getElementById('save-modal').classList.add('open');
+  }
+  function closeSaveModal() {
+    document.getElementById('save-modal').classList.remove('open');
+  }
+
+  function executeSave() {
+    const saveOriginal = document.getElementById('save-original').checked;
+    const saveAI       = document.getElementById('save-ai').checked;
+    const savePrompt   = document.getElementById('save-prompt').checked;
+    const saveImage    = document.getElementById('save-image').checked;
+
+    if (!saveOriginal && !saveAI && !savePrompt && !saveImage) {
+      showToast('Select at least one item to save');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    const filename = `inkdraft_${timestamp}.txt`;
+
+    let content = `INKDRAFT SESSION\n${'─'.repeat(40)}\n${timestamp}\n\n`;
+
+    if (saveOriginal && state.originalText) {
+      content += `YOUR ORIGINAL TEXT\n${'─'.repeat(40)}\n${state.originalText}\n\n`;
+    }
+    if (savePrompt && document.getElementById('prompt-input').value) {
+      content += `PROMPT USED\n${'─'.repeat(40)}\n${document.getElementById('prompt-input').value}\n\n`;
+    }
+    if (saveAI && state.aiText) {
+      content += `AI GENERATED VERSION\n${'─'.repeat(40)}\n${state.aiText}\n\n`;
+    }
+
+    // Download text
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Save image separately
+    if (saveImage && state.sourceImageSrc) {
+      const imgA = document.createElement('a');
+      imgA.href  = state.sourceImageSrc;
+      imgA.download = `inkdraft_source_${timestamp}.jpg`;
+      imgA.click();
+    }
+
+    closeSaveModal();
+    showToast('✓ Session saved');
+  }
+
+  // ── RESET ──────────────────────────────────────────────
+  function resetToUpload() {
+    document.getElementById('upload-zone').style.display = 'flex';
+    document.getElementById('workspace').classList.remove('active');
+    document.getElementById('save-btn').style.display = 'none';
+    document.getElementById('new-scan-btn').style.display = 'none';
+    document.getElementById('original-text').value = '';
+    document.getElementById('prompt-input').value = '';
+    document.getElementById('ai-text-display').className = 'empty';
+    document.getElementById('ai-text-display').innerHTML = '<span>Write a prompt above and press Generate.<br/>AI will type here in real time.</span>';
+    document.getElementById('ai-char-count').textContent = '0 chars';
+    document.getElementById('original-char-count').textContent = '0 chars';
+    document.getElementById('generate-btn').disabled = true;
+    document.getElementById('generate-btn').innerHTML = '<span>✦</span> Generate';
+    document.getElementById('source-status').textContent = '—';
+    document.getElementById('ai-model-tag').textContent = '—';
+    document.getElementById('file-input').value = '';
+    document.getElementById('camera-input').value = '';
+    state.originalText = '';
+    state.aiText = '';
+    state.promptText = '';
+    state.sourceImageSrc = null;
+    state.uncertainWords = [];
+    if (state.focusedPanel) {
+      document.getElementById(state.focusedPanel)?.classList.remove('focused');
+      state.focusedPanel = null;
+      document.body.style.overflow = '';
+    }
+    // Reset collapsed panels
+    ['panel-source','panel-original','panel-prompt','panel-ai'].forEach(id => {
+      const p = document.getElementById(id);
+      if (p) {
+        p.classList.remove('collapsed');
+        const ch = document.getElementById(`${id}-chevron`);
+        if (ch) ch.textContent = '▲';
+      }
+    });
+    window.scrollTo(0,0);
+  }
+
+  // ── TOAST ──────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, duration = 2800) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  // ── PWA INSTALL ────────────────────────────────────────
+  function setupInstallBanner() {
+    if (localStorage.getItem('inkdraft-install-dismissed')) return;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      state.deferredInstall = e;
+      setTimeout(() => {
+        document.getElementById('install-banner').classList.add('show');
+      }, 1500);
+    });
+  }
+  function installPWA() {
+    if (state.deferredInstall) {
+      state.deferredInstall.prompt();
+      state.deferredInstall.userChoice.then(() => {
+        state.deferredInstall = null;
+        document.getElementById('install-banner').classList.remove('show');
+      });
+    }
+  }
+  function dismissInstall() {
+    document.getElementById('install-banner').classList.remove('show');
+    localStorage.setItem('inkdraft-install-dismissed', '1');
+  }
+
+  // ── SERVICE WORKER ─────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  // ── KEYBOARD SHORTCUTS ─────────────────────────────────
+  document.addEventListener('keydown', e => {
+    // Escape exits focus mode
+    if (e.key === 'Escape' && state.focusedPanel) {
+      focusPanel(state.focusedPanel);
+    }
+    // Ctrl/Cmd+Enter generates AI when prompt is focused
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const active = document.activeElement;
+      if (active && active.id === 'prompt-input') {
+        generateAI();
+      }
+    }
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('save-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSaveModal();
+  });
+  </script>
+</body>
+</html>
