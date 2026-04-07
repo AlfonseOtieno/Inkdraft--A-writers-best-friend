@@ -1153,54 +1153,30 @@
     el.classList.toggle('active', show);
   }
 
-  // ── OCR via Claude Vision ──────────────────────────────
+  // ── OCR via Gemini Vision (/api/ocr) ──────────────────
   async function runOCR(imageSrc) {
     try {
       updateOCRStatus('Reading your handwriting…');
 
-      // Convert data URL to base64 only
       const base64Data = imageSrc.split(',')[1];
       const mimeType = imageSrc.split(';')[0].split(':')[1] || 'image/jpeg';
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: `You are a precise handwriting transcription engine. Your only job is to transcribe handwritten text from images with perfect fidelity.
-
-RULES — follow every single one:
-1. Output ONLY the transcribed text. No preamble. No explanation. No commentary.
-2. Preserve the EXACT words, spelling, punctuation, and line breaks as written. Do NOT correct anything.
-3. If a word is unclear, make your best guess and wrap it in [brackets] so the writer can verify.
-4. If a section is completely illegible, write [illegible].
-5. Preserve paragraph breaks.
-6. Do not add any text that is not in the image.`,
-          messages: [{
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: mimeType, data: base64Data }
-              },
-              { type: 'text', text: 'Transcribe this handwritten text exactly as written.' }
-            ]
-          }]
-        })
+        body: JSON.stringify({ imageBase64: base64Data, mimeType })
       });
 
       const data = await response.json();
 
-      if (data.error) {
-        throw new Error(data.error.message || 'API error');
+      if (!response.ok) {
+        throw new Error(data.error || `Server error ${response.status}`);
       }
 
-      const rawText = data.content?.map(b => b.text || '').join('').trim() || '';
+      const rawText = data.text || '';
+      if (!rawText) throw new Error('No text returned');
 
-      if (!rawText) throw new Error('Empty response');
-
-      // Find bracketed uncertain words
+      // Find bracketed uncertain words e.g. [word]
       const uncertainMatches = rawText.match(/\[([^\]]+)\]/g) || [];
       state.uncertainWords = uncertainMatches
         .filter(m => m !== '[illegible]')
@@ -1303,7 +1279,7 @@ RULES — follow every single one:
     input.focus();
   }
 
-  // ── AI GENERATION ──────────────────────────────────────
+  // ── AI GENERATION via Gemini (/api/generate) ──────────
   async function generateAI() {
     if (state.isGenerating) return;
     const prompt = document.getElementById('prompt-input').value.trim();
@@ -1323,37 +1299,22 @@ RULES — follow every single one:
     aiDisplay.classList.remove('empty');
     aiDisplay.innerHTML = '<span class="cursor-blink"></span>';
 
-    const systemPrompt = `You are a writing assistant for Inkdraft. Your role is sacred: you must NEVER rewrite the author's text wholesale. You assist, you never replace.
-
-Rules:
-1. The author's voice, rhythm, and intent must be preserved above all else.
-2. Apply ONLY what the user explicitly requests in their prompt.
-3. If no prompt is given, make light grammar corrections only — change nothing else.
-4. Do not add new ideas, sentences, or meaning that weren't in the original.
-5. Output ONLY the improved text — no preamble, no explanation, no commentary.
-6. Preserve paragraph breaks exactly as they appear in the original.`;
-
-    const userMessage = prompt
-      ? `Here is my text:\n\n${original}\n\nInstruction: ${prompt}`
-      : `Here is my text. Please correct grammar and spelling only — do not change my voice, style, or meaning:\n\n${original}`;
-
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userMessage }]
-        })
+        body: JSON.stringify({ originalText: original, prompt })
       });
 
       const data = await response.json();
-      const fullText = data.content?.map(b => b.text || '').join('') || '';
 
+      if (!response.ok) {
+        throw new Error(data.error || `Server error ${response.status}`);
+      }
+
+      const fullText = data.text || '';
       state.aiText = fullText;
-      document.getElementById('ai-model-tag').textContent = 'claude-sonnet · inkdraft';
+      document.getElementById('ai-model-tag').textContent = 'gemini-2.5-flash · inkdraft';
 
       await typewriterDisplay(aiDisplay, fullText);
       updateAICharCount(fullText);
