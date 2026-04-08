@@ -7,6 +7,11 @@
   <meta name="description" content="Inkdraft — Scan your handwriting. Own your words." />
   <title>Inkdraft</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%231a1814'/%3E%3Ctext x='96' y='128' font-family='Georgia,serif' font-size='110' font-weight='600' fill='%23b5451b' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Inkdraft" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -531,6 +536,57 @@
       display: flex;
       flex-direction: column;
       position: relative;
+      overflow: hidden;
+    }
+
+    /* Highlight overlay — sits behind the textarea, mirrors its content */
+    #original-highlight {
+      position: absolute;
+      inset: 0;
+      padding: 1.25rem;
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      line-height: 1.8;
+      color: transparent;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #original-highlight .uncertain-word {
+      background: rgba(181, 69, 27, 0.15);
+      color: transparent;
+      border-radius: 3px;
+      outline: 2px solid rgba(181, 69, 27, 0.5);
+      outline-offset: -1px;
+    }
+
+    /* Textarea sits on top of overlay, transparent background */
+    #original-text {
+      position: relative;
+      z-index: 2;
+      background: transparent !important;
+    }
+
+    /* Uncertain legend bar */
+    #uncertain-legend {
+      padding: 0.45rem 1rem;
+      font-size: 0.75rem;
+      color: var(--ink-3);
+      border-top: 1px solid var(--paper-3);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-ui);
+    }
+    .uncertain-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: rgba(181, 69, 27, 0.5);
+      border: 1.5px solid var(--accent);
+      flex-shrink: 0;
     }
 
     /* ── PROMPT PANEL ────────────────────────────────────── */
@@ -850,6 +906,45 @@
       100% { background: transparent; }
     }
     .copy-flash { animation: copyFlash 0.4s ease; }
+
+    /* ── FOOTER CTA ──────────────────────────────────────── */
+    #site-footer {
+      border-top: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      padding: 0.9rem 1.5rem;
+      margin-top: auto;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      font-family: var(--font-ui);
+    }
+    .footer-built { color: var(--ink-3); }
+    .footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+    .footer-link:hover { color: var(--accent-2); }
+    .footer-sep { color: var(--paper-3); }
+    .footer-tagline {
+      color: var(--ink-3);
+      font-style: italic;
+      font-family: var(--font-serif);
+      font-size: 0.76rem;
+    }
+    @media (max-width: 480px) {
+      .footer-tagline { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -943,13 +1038,19 @@
         </div>
         <div class="panel-body">
           <div class="original-wrapper">
-            <div class="text-render-layer" id="original-render" style="display:none"></div>
+            <!-- Highlight overlay sits behind textarea, synced by JS -->
+            <div id="original-highlight" aria-hidden="true"></div>
             <textarea
               id="original-text"
               placeholder="Your scanned text will appear here — exactly as written. You can also type or paste directly."
               oninput="onOriginalInput()"
               spellcheck="false"
             ></textarea>
+          </div>
+          <!-- Legend shown only when uncertain words exist -->
+          <div id="uncertain-legend" style="display:none">
+            <span class="uncertain-dot"></span>
+            Words in <span style="color:#b5451b;font-weight:500">[brackets]</span> were unclear — please review
           </div>
         </div>
       </div>
@@ -1240,12 +1341,46 @@
     }
   }
 
+  // Escape HTML for safe injection into highlight overlay
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Sync highlight overlay with textarea scroll
+  function syncHighlightScroll() {
+    const ta = document.getElementById('original-text');
+    const hl = document.getElementById('original-highlight');
+    if (hl) hl.scrollTop = ta.scrollTop;
+  }
+
+  // Build the highlight overlay content — wraps [bracketed] words in styled spans
   function renderOriginalWithHighlights(text) {
-    // Highlight [bracketed] uncertain words in the textarea display
-    // We can't directly style a textarea, so we show a notice if there are uncertain words
-    if (state.uncertainWords && state.uncertainWords.length > 0) {
-      showToast(`⚠ ${state.uncertainWords.length} uncertain word(s) marked in [brackets] — please review`);
+    const hl = document.getElementById('original-highlight');
+    const legend = document.getElementById('uncertain-legend');
+    if (!hl) return;
+
+    const hasBrackets = /\[[^\]]+\]/.test(text);
+
+    if (!hasBrackets) {
+      hl.innerHTML = '';
+      if (legend) legend.style.display = 'none';
+      return;
     }
+
+    // Replace [word] with highlighted span, escape everything else
+    const html = escapeHtml(text).replace(
+      /\[([^\]]+)\]/g,
+      (match) => `<span class="uncertain-word">${match}</span>`
+    );
+    hl.innerHTML = html;
+    if (legend) legend.style.display = 'flex';
+
+    // Keep scroll in sync
+    const ta = document.getElementById('original-text');
+    ta.addEventListener('scroll', syncHighlightScroll, { passive: true });
   }
 
   function escapeHtml(text) {
@@ -1263,6 +1398,8 @@
     state.originalText = textarea.value;
     updateOriginalCharCount();
     document.getElementById('generate-btn').disabled = state.originalText.trim().length === 0;
+    // Re-render highlight overlay as writer edits
+    renderOriginalWithHighlights(state.originalText);
   }
 
   function updateOriginalCharCount() {
@@ -1603,5 +1740,25 @@
     if (e.target === this) closeSaveModal();
   });
   </script>
+
+  <!-- FOOTER CTA -->
+  <footer id="site-footer">
+    <div class="footer-inner">
+      <span class="footer-built">Built by</span>
+      <a
+        href="https://alfonseotieno.github.io/Personal-portfolio-/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="footer-link"
+      >
+        Alfonse Otieno
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2.5 9.5L9.5 2.5M9.5 2.5H4.5M9.5 2.5V7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <span class="footer-sep">·</span>
+      <span class="footer-tagline">Inkdraft — Your words, exactly as written.</span>
+    </div>
+  </footer>
 </body>
 </html>
