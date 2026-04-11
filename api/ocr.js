@@ -20,18 +20,30 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server." });
   }
 
-  const prompt = `You are a precise handwriting transcription engine. Your only job is to transcribe handwritten text from images with perfect fidelity.
+  const prompt = `You are a handwriting transcription engine. Your job is to transcribe handwritten text AND honestly report your confidence for every word.
+
+OUTPUT FORMAT — you must return a JSON object with this exact shape:
+{
+  "words": [
+    { "text": "word", "confident": true },
+    { "text": "unclear_word", "confident": false },
+    { "text": "\\n", "confident": true }
+  ]
+}
 
 RULES — follow every single one:
-1. Output ONLY the transcribed text. No preamble. No explanation. No commentary.
-2. Preserve the EXACT words, spelling, punctuation, and line breaks as written. Do NOT correct anything.
-3. If a word is unclear, make your best guess and wrap it in [brackets] so the writer can verify.
-4. If a section is completely illegible, write [illegible].
-5. Preserve paragraph breaks exactly as they appear.
-6. Do not add any text that is not in the image.
-7. Do not describe the image. Just transcribe the text.
+1. Return ONLY the raw JSON object. No markdown fences, no preamble, no explanation.
+2. Split the handwriting into individual words. Each word is one entry in the array.
+3. For line breaks, insert an entry: { "text": "\\n", "confident": true }
+4. For paragraph breaks (blank lines), insert TWO newline entries in a row.
+5. "confident": true means you can clearly read this word with high certainty.
+6. "confident": false means the word is smudged, ambiguous, partially illegible, or you are guessing. Be strict — if there is any reasonable doubt, mark it false.
+7. If a word is completely illegible, use "text": "[illegible]" and "confident": false.
+8. Do NOT correct spelling. Transcribe exactly what is written, even if it looks like a mistake.
+9. Do NOT add words that are not in the image.
+10. Punctuation attached to a word (e.g. "word,") should be included in that word's text.
 
-Transcribe this handwritten text exactly as written.`;
+Be honest and strict about confidence. It is better to mark too many words as uncertain than to silently guess wrong. The writer depends on your honesty to catch errors.`;
 
   try {
     const upstream = await fetch(
@@ -53,7 +65,8 @@ Transcribe this handwritten text exactly as written.`;
           }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 2000,
+            maxOutputTokens: 4000,
+            responseMimeType: "application/json",
           },
         }),
       }
@@ -66,13 +79,37 @@ Transcribe this handwritten text exactly as written.`;
     }
 
     const data = await upstream.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    if (!text.trim()) {
-      return res.status(500).json({ error: "No text could be extracted from the image." });
+    // Parse the word-confidence JSON
+    let parsed;
+    try {
+      const clean = raw.replace(/```json|```/g, "").trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      // Fallback: if JSON fails, return raw text without confidence data
+      console.error("OCR JSON parse failed, returning raw text");
+      return res.status(200).json({ text: raw.trim(), words: null });
     }
 
-    return res.status(200).json({ text: text.trim() });
+    if (!Array.isArray(parsed.words)) {
+      return res.status(500).json({ error: "Unexpected OCR response format." });
+    }
+
+    // Build the plain text for the textarea
+    let plainText = "";
+    for (const w of parsed.words) {
+      if (w.text === "\n") {
+        plainText += "\n";
+      } else {
+        plainText += (plainText && !plainText.endsWith("\n") ? " " : "") + w.text;
+      }
+    }
+
+    return res.status(200).json({
+      text: plainText.trim(),
+      words: parsed.words,
+    });
 
   } catch (err) {
     console.error("OCR handler error:", err);

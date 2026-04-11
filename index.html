@@ -555,11 +555,14 @@
       z-index: 1;
     }
     #original-highlight .uncertain-word {
-      background: rgba(181, 69, 27, 0.15);
+      background: rgba(194, 120, 0, 0.22);
       color: transparent;
       border-radius: 3px;
-      outline: 2px solid rgba(181, 69, 27, 0.5);
-      outline-offset: -1px;
+      border-bottom: 2px solid rgba(194, 120, 0, 0.85);
+    }
+    [data-theme="dark"] #original-highlight .uncertain-word {
+      background: rgba(251, 191, 36, 0.18);
+      border-bottom-color: rgba(251, 191, 36, 0.8);
     }
 
     /* Textarea sits on top of overlay, transparent background */
@@ -584,8 +587,8 @@
       width: 8px;
       height: 8px;
       border-radius: 2px;
-      background: rgba(181, 69, 27, 0.5);
-      border: 1.5px solid var(--accent);
+      background: rgba(194, 120, 0, 0.3);
+      border: 1.5px solid rgba(194, 120, 0, 0.85);
       flex-shrink: 0;
     }
 
@@ -1050,7 +1053,7 @@
           <!-- Legend shown only when uncertain words exist -->
           <div id="uncertain-legend" style="display:none">
             <span class="uncertain-dot"></span>
-            Words in <span style="color:#b5451b;font-weight:500">[brackets]</span> were unclear — please review
+            <span>Highlighted words were <strong style="color:rgba(194,120,0,0.95);font-weight:600">unclear in your handwriting</strong> — please verify they are correct</span>
           </div>
         </div>
       </div>
@@ -1188,6 +1191,7 @@
     aiText: '',
     promptText: '',
     sourceImageSrc: null,
+    wordConfidence: null,
     isGenerating: false,
     focusedPanel: null,
     deferredInstall: null,
@@ -1277,11 +1281,8 @@
       const rawText = data.text || '';
       if (!rawText) throw new Error('No text returned');
 
-      // Find bracketed uncertain words e.g. [word]
-      const uncertainMatches = rawText.match(/\[([^\]]+)\]/g) || [];
-      state.uncertainWords = uncertainMatches
-        .filter(m => m !== '[illegible]')
-        .map(m => m.slice(1, -1));
+      // Store word-level confidence data from API
+      state.wordConfidence = data.words || null;
 
       showWorkspace(imageSrc, rawText);
 
@@ -1356,42 +1357,57 @@
     if (hl) hl.scrollTop = ta.scrollTop;
   }
 
-  // Build the highlight overlay content — wraps [bracketed] words in styled spans
+  // Build the highlight overlay from word-confidence data
   function renderOriginalWithHighlights(text) {
     const hl = document.getElementById('original-highlight');
     const legend = document.getElementById('uncertain-legend');
     if (!hl) return;
 
-    const hasBrackets = /\[[^\]]+\]/.test(text);
+    // If we have word-level confidence data, use it for precise highlighting
+    if (state.wordConfidence && state.wordConfidence.length > 0) {
+      let html = '';
+      let hasUncertain = false;
 
-    if (!hasBrackets) {
-      hl.innerHTML = '';
-      if (legend) legend.style.display = 'none';
-      return;
+      for (let i = 0; i < state.wordConfidence.length; i++) {
+        const w = state.wordConfidence[i];
+        if (w.text === '\n') {
+          html += '\n';
+        } else {
+          const needsSpace = html.length > 0 && !html.endsWith('\n');
+          const prefix = needsSpace ? ' ' : '';
+          if (!w.confident) {
+            hasUncertain = true;
+            html += prefix + '<span class="uncertain-word">' + escapeHtml(w.text) + '</span>';
+          } else {
+            html += prefix + escapeHtml(w.text);
+          }
+        }
+      }
+
+      hl.innerHTML = html;
+      if (legend) legend.style.display = hasUncertain ? 'flex' : 'none';
+
+    } else {
+      // Fallback: highlight [bracketed] words in plain text
+      const hasBrackets = /\[([^\]]+)\]/.test(text);
+      if (!hasBrackets) {
+        hl.innerHTML = '';
+        if (legend) legend.style.display = 'none';
+        return;
+      }
+      const html = escapeHtml(text).replace(
+        /\[([^\]]+)\]/g,
+        (match) => '<span class="uncertain-word">' + match + '</span>'
+      );
+      hl.innerHTML = html;
+      if (legend) legend.style.display = 'flex';
     }
 
-    // Replace [word] with highlighted span, escape everything else
-    const html = escapeHtml(text).replace(
-      /\[([^\]]+)\]/g,
-      (match) => `<span class="uncertain-word">${match}</span>`
-    );
-    hl.innerHTML = html;
-    if (legend) legend.style.display = 'flex';
-
-    // Keep scroll in sync
+    // Keep overlay scroll in sync with textarea
     const ta = document.getElementById('original-text');
+    ta.removeEventListener('scroll', syncHighlightScroll);
     ta.addEventListener('scroll', syncHighlightScroll, { passive: true });
   }
-
-  function escapeHtml(text) {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/\n/g, '<br/>');
-  }
-
   // ── ORIGINAL TEXT EVENTS ───────────────────────────────
   function onOriginalInput() {
     const textarea = document.getElementById('original-text');
@@ -1654,6 +1670,11 @@
     document.getElementById('ai-char-count').textContent = '0 chars';
     document.getElementById('original-char-count').textContent = '0 chars';
     document.getElementById('generate-btn').disabled = true;
+    // Clear highlight overlay
+    const hl = document.getElementById('original-highlight');
+    if (hl) hl.innerHTML = '';
+    const legend = document.getElementById('uncertain-legend');
+    if (legend) legend.style.display = 'none';
     document.getElementById('generate-btn').innerHTML = '<span>✦</span> Generate';
     document.getElementById('source-status').textContent = '—';
     document.getElementById('ai-model-tag').textContent = '—';
@@ -1663,7 +1684,7 @@
     state.aiText = '';
     state.promptText = '';
     state.sourceImageSrc = null;
-    state.uncertainWords = [];
+    state.wordConfidence = null;
     if (state.focusedPanel) {
       document.getElementById(state.focusedPanel)?.classList.remove('focused');
       state.focusedPanel = null;
