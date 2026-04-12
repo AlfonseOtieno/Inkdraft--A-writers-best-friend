@@ -555,14 +555,21 @@
       z-index: 1;
     }
     #original-highlight .uncertain-word {
-      background: rgba(194, 120, 0, 0.22);
+      background: rgba(194, 120, 0, 0.2);
       color: transparent;
       border-radius: 3px;
       border-bottom: 2px solid rgba(194, 120, 0, 0.85);
     }
     [data-theme="dark"] #original-highlight .uncertain-word {
-      background: rgba(251, 191, 36, 0.18);
+      background: rgba(251, 191, 36, 0.15);
       border-bottom-color: rgba(251, 191, 36, 0.8);
+    }
+    #original-highlight .grammar-error {
+      color: transparent;
+      border-bottom: 2px wavy #c0392b;
+    }
+    [data-theme="dark"] #original-highlight .grammar-error {
+      border-bottom-color: #e74c3c;
     }
 
     /* Textarea sits on top of overlay, transparent background */
@@ -590,6 +597,22 @@
       background: rgba(194, 120, 0, 0.3);
       border: 1.5px solid rgba(194, 120, 0, 0.85);
       flex-shrink: 0;
+    }
+    .grammar-dot {
+      width: 18px;
+      height: 8px;
+      border-radius: 2px;
+      border-bottom: 2px wavy #c0392b;
+      flex-shrink: 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .legend-sep {
+      color: var(--paper-3);
+      margin: 0 0.15rem;
     }
 
     /* ── PROMPT PANEL ────────────────────────────────────── */
@@ -1052,8 +1075,15 @@
           </div>
           <!-- Legend shown only when uncertain words exist -->
           <div id="uncertain-legend" style="display:none">
-            <span class="uncertain-dot"></span>
-            <span>Highlighted words were <strong style="color:rgba(194,120,0,0.95);font-weight:600">unclear in your handwriting</strong> — please verify they are correct</span>
+            <span class="legend-item">
+              <span class="uncertain-dot"></span>
+              <span>Amber = unclear handwriting</span>
+            </span>
+            <span class="legend-sep">·</span>
+            <span class="legend-item">
+              <span class="grammar-dot"></span>
+              <span>Red underline = grammar error</span>
+            </span>
           </div>
         </div>
       </div>
@@ -1192,6 +1222,8 @@
     promptText: '',
     sourceImageSrc: null,
     wordConfidence: null,
+    uncertainWords: [],
+    grammarErrors: [],
     isGenerating: false,
     focusedPanel: null,
     deferredInstall: null,
@@ -1281,8 +1313,12 @@
       const rawText = data.text || '';
       if (!rawText) throw new Error('No text returned');
 
-      // Store word-level confidence data from API
-      state.wordConfidence = data.words || null;
+      // Store uncertainty and grammar data
+      state.uncertainWords = data.uncertainWords || [];
+      state.grammarErrors  = data.grammarErrors  || [];
+      state.wordConfidence = null;
+    state.uncertainWords = [];
+    state.grammarErrors = []; // not used in new approach
 
       showWorkspace(imageSrc, rawText);
 
@@ -1357,53 +1393,51 @@
     if (hl) hl.scrollTop = ta.scrollTop;
   }
 
-  // Build the highlight overlay from word-confidence data
+  // Build the highlight overlay — amber for uncertain, red underline for grammar errors
   function renderOriginalWithHighlights(text) {
     const hl = document.getElementById('original-highlight');
     const legend = document.getElementById('uncertain-legend');
     if (!hl) return;
 
-    // If we have word-level confidence data, use it for precise highlighting
-    if (state.wordConfidence && state.wordConfidence.length > 0) {
-      let html = '';
-      let hasUncertain = false;
+    const uncertain = state.uncertainWords || [];
+    const grammar   = state.grammarErrors  || [];
 
-      for (let i = 0; i < state.wordConfidence.length; i++) {
-        const w = state.wordConfidence[i];
-        if (w.text === '\n') {
-          html += '\n';
-        } else {
-          const needsSpace = html.length > 0 && !html.endsWith('\n');
-          const prefix = needsSpace ? ' ' : '';
-          if (!w.confident) {
-            hasUncertain = true;
-            html += prefix + '<span class="uncertain-word">' + escapeHtml(w.text) + '</span>';
-          } else {
-            html += prefix + escapeHtml(w.text);
-          }
-        }
-      }
-
-      hl.innerHTML = html;
-      if (legend) legend.style.display = hasUncertain ? 'flex' : 'none';
-
-    } else {
-      // Fallback: highlight [bracketed] words in plain text
-      const hasBrackets = /\[([^\]]+)\]/.test(text);
-      if (!hasBrackets) {
-        hl.innerHTML = '';
-        if (legend) legend.style.display = 'none';
-        return;
-      }
-      const html = escapeHtml(text).replace(
-        /\[([^\]]+)\]/g,
-        (match) => '<span class="uncertain-word">' + match + '</span>'
-      );
-      hl.innerHTML = html;
-      if (legend) legend.style.display = 'flex';
+    if (uncertain.length === 0 && grammar.length === 0) {
+      hl.innerHTML = '';
+      if (legend) legend.style.display = 'none';
+      return;
     }
 
-    // Keep overlay scroll in sync with textarea
+    // Escape text, then wrap matched words with highlight spans
+    // Process word by word to avoid double-wrapping
+    let html = escapeHtml(text);
+
+    // Apply grammar errors first — red wavy underline
+    grammar.forEach(phrase => {
+      if (!phrase) return;
+      const escaped = escapeHtml(phrase);
+      // Use a regex that matches whole words/phrases
+      const regex = new RegExp(escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      html = html.replace(regex, `<span class="grammar-error">${escaped}</span>`);
+    });
+
+    // Apply uncertain words — amber highlight
+    // (only if not already wrapped by grammar)
+    uncertain.forEach(word => {
+      if (!word) return;
+      const escaped = escapeHtml(word);
+      const regex = new RegExp('(?<!class="[^"]*>)' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      // Simpler: just replace unspanned occurrences
+      html = html.replace(
+        new RegExp('(?<![>])' + escaped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![^<]*<\/span>)', 'g'),
+        `<span class="uncertain-word">${escaped}</span>`
+      );
+    });
+
+    hl.innerHTML = html;
+    if (legend) legend.style.display = uncertain.length > 0 ? 'flex' : 'none';
+
+    // Sync scroll
     const ta = document.getElementById('original-text');
     ta.removeEventListener('scroll', syncHighlightScroll);
     ta.addEventListener('scroll', syncHighlightScroll, { passive: true });
@@ -1685,6 +1719,8 @@
     state.promptText = '';
     state.sourceImageSrc = null;
     state.wordConfidence = null;
+    state.uncertainWords = [];
+    state.grammarErrors = [];
     if (state.focusedPanel) {
       document.getElementById(state.focusedPanel)?.classList.remove('focused');
       state.focusedPanel = null;

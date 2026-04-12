@@ -20,33 +20,36 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server." });
   }
 
-  const prompt = `You are a handwriting transcription engine. Your job is to transcribe handwritten text AND honestly report your confidence for every word.
+  // Step 1: Plain transcription — exact text, uncertain words in {{double braces}}
+  const transcribePrompt = `You are a handwriting transcription engine. Transcribe the handwritten text in this image.
 
-OUTPUT FORMAT — you must return a JSON object with this exact shape:
-{
-  "words": [
-    { "text": "word", "confident": true },
-    { "text": "unclear_word", "confident": false },
-    { "text": "\\n", "confident": true }
-  ]
-}
+OUTPUT RULES — follow exactly:
+1. Output ONLY the transcribed text. No explanation, no preamble, no commentary.
+2. Copy the EXACT words as written. Do NOT fix spelling or grammar.
+3. Preserve line breaks and paragraph breaks exactly as on the paper.
+4. For words you can read clearly: write them normally.
+5. For words you are uncertain about (smudged, ambiguous, hard to read): wrap them in double curly braces like {{this}}.
+6. For completely illegible sections: write {{illegible}}.
+7. Do NOT invent or add words that are not visible in the image.
+8. Be honest — if you are not fully certain about a word, mark it with {{braces}}.`;
 
-RULES — follow every single one:
-1. Return ONLY the raw JSON object. No markdown fences, no preamble, no explanation.
-2. Split the handwriting into individual words. Each word is one entry in the array.
-3. For line breaks, insert an entry: { "text": "\\n", "confident": true }
-4. For paragraph breaks (blank lines), insert TWO newline entries in a row.
-5. "confident": true means you can clearly read this word with high certainty.
-6. "confident": false means the word is smudged, ambiguous, partially illegible, or you are guessing. Be strict — if there is any reasonable doubt, mark it false.
-7. If a word is completely illegible, use "text": "[illegible]" and "confident": false.
-8. Do NOT correct spelling. Transcribe exactly what is written, even if it looks like a mistake.
-9. Do NOT add words that are not in the image.
-10. Punctuation attached to a word (e.g. "word,") should be included in that word's text.
+  // Step 2: Grammar check — find positions of grammar errors
+  const grammarPrompt = `You are a grammar checker. You will be given a piece of text transcribed from handwriting.
 
-Be honest and strict about confidence. It is better to mark too many words as uncertain than to silently guess wrong. The writer depends on your honesty to catch errors.`;
+Your job: identify grammar and spelling errors in the text.
+
+Return ONLY a JSON array of the exact error words/phrases, like this:
+["word1", "phrase two", "word3"]
+
+Rules:
+- Only include clear grammar or spelling errors.
+- Do NOT include uncertain words that are marked with {{braces}} — those are OCR uncertainty, not grammar errors.
+- If there are no errors, return an empty array: []
+- Return ONLY the raw JSON array, nothing else.`;
 
   try {
-    const upstream = await fetch(
+    // ── CALL 1: Transcribe ──────────────────────────────
+    const transcribeRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: "POST",
@@ -54,61 +57,68 @@ Be honest and strict about confidence. It is better to mark too many words as un
         body: JSON.stringify({
           contents: [{
             parts: [
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: imageBase64,
-                }
-              },
-              { text: prompt }
+              { inline_data: { mime_type: mimeType, data: imageBase64 } },
+              { text: transcribePrompt }
             ]
           }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4000,
-            responseMimeType: "application/json",
-          },
+          generationConfig: { temperature: 0.1, maxOutputTokens: 3000 },
         }),
       }
     );
 
-    if (!upstream.ok) {
-      const errText = await upstream.text();
-      console.error("Gemini OCR error:", errText);
-      return res.status(upstream.status).json({ error: `Gemini API error: ${upstream.status}` });
+    if (!transcribeRes.ok) {
+      const errText = await transcribeRes.text();
+      console.error("Gemini transcribe error:", errText);
+      return res.status(transcribeRes.status).json({ error: `Gemini API error: ${transcribeRes.status}` });
     }
 
-    const data = await upstream.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const transcribeData = await transcribeRes.json();
+    const rawText = transcribeData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
-    // Parse the word-confidence JSON
-    let parsed;
+    if (!rawText) {
+      return res.status(500).json({ error: "No text could be extracted from the image." });
+    }
+
+    // Parse uncertain words from {{braces}}
+    const uncertainWords = [];
+    const plainText = rawText.replace(/\{\{([^}]+)\}\}/g, (match, word) => {
+      uncertainWords.push(word);
+      return word; // strip braces for plain text, keep the word
+    });
+
+    // ── CALL 2: Grammar check (on plain text) ──────────
+    let grammarErrors = [];
     try {
-      const clean = raw.replace(/```json|```/g, "").trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      // Fallback: if JSON fails, return raw text without confidence data
-      console.error("OCR JSON parse failed, returning raw text");
-      return res.status(200).json({ text: raw.trim(), words: null });
-    }
+      const grammarRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: `${grammarPrompt}\n\nText to check:\n${plainText}` }]
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 500 },
+          }),
+        }
+      );
 
-    if (!Array.isArray(parsed.words)) {
-      return res.status(500).json({ error: "Unexpected OCR response format." });
-    }
-
-    // Build the plain text for the textarea
-    let plainText = "";
-    for (const w of parsed.words) {
-      if (w.text === "\n") {
-        plainText += "\n";
-      } else {
-        plainText += (plainText && !plainText.endsWith("\n") ? " " : "") + w.text;
+      if (grammarRes.ok) {
+        const grammarData = await grammarRes.json();
+        const grammarRaw = grammarData?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        const grammarClean = grammarRaw.replace(/```json|```/g, "").trim();
+        grammarErrors = JSON.parse(grammarClean);
+        if (!Array.isArray(grammarErrors)) grammarErrors = [];
       }
+    } catch (grammarErr) {
+      console.warn("Grammar check failed (non-fatal):", grammarErr.message);
+      grammarErrors = [];
     }
 
     return res.status(200).json({
       text: plainText.trim(),
-      words: parsed.words,
+      uncertainWords,
+      grammarErrors,
     });
 
   } catch (err) {
