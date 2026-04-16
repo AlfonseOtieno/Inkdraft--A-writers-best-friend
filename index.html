@@ -383,11 +383,25 @@
     }
     .btn-add-page:hover { border-color: var(--accent); color: var(--accent); }
 
+    /* Always-visible camera + divider row */
+    .initial-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .initial-actions::before,
+    .initial-actions::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--paper-3);
+    }
+
     .btn-camera {
       display: flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.6rem 1rem;
+      padding: 0.6rem 1.2rem;
       border-radius: var(--radius);
       border: 1px solid var(--paper-3);
       background: var(--paper-2);
@@ -396,8 +410,26 @@
       font-size: 0.82rem;
       cursor: pointer;
       transition: all var(--transition);
+      white-space: nowrap;
     }
     .btn-camera:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+    .btn-camera-sm {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      color: var(--ink-3);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-camera-sm:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
     /* Extract button */
     #extract-btn {
@@ -429,6 +461,9 @@
       gap: 0.85rem;
     }
     #type-panel.active { display: flex; }
+
+    /* ── SCAN PANEL hidden state ─────────────────────────── */
+    #scan-panel.hidden { display: none !important; }
 
     #direct-text-input {
       width: 100%;
@@ -1241,20 +1276,27 @@
         <p>Drag & drop or click to upload.<br/>Select multiple files at once, or add pages one by one.</p>
       </div>
 
+      <!-- Camera always visible below drop zone -->
+      <div class="initial-actions">
+        <button class="btn-camera" onclick="triggerCamera()">
+          📷 Use Camera
+        </button>
+      </div>
+
       <!-- Page queue (shown once pages are added) -->
       <div id="page-queue">
         <span class="page-queue-label">Pages — in order</span>
         <div class="page-list" id="page-list"></div>
       </div>
 
-      <!-- Add more / camera row -->
+      <!-- Add more pages row (shown after first page added) -->
       <div class="scan-actions" id="scan-actions" style="display:none">
         <button class="btn-add-page">
           <input type="file" id="add-page-input" accept="image/*" multiple onchange="handleAddPage(event)" />
           + Add page
         </button>
-        <button class="btn-camera" onclick="triggerCamera()">
-          📷 Camera
+        <button class="btn-camera-sm" onclick="triggerCamera()">
+          📷
         </button>
       </div>
 
@@ -1529,7 +1571,8 @@
     state.inputTab = tab;
     document.getElementById('tab-scan').classList.toggle('active', tab === 'scan');
     document.getElementById('tab-type').classList.toggle('active', tab === 'type');
-    document.getElementById('scan-panel').style.display = tab === 'scan' ? 'flex' : 'none';
+    // Use class toggles so CSS is single source of truth
+    document.getElementById('scan-panel').classList.toggle('hidden', tab !== 'scan');
     document.getElementById('type-panel').classList.toggle('active', tab === 'type');
   }
 
@@ -1588,22 +1631,25 @@
   }
 
   function renderPageQueue() {
-    const list    = document.getElementById('page-list');
-    const queue   = document.getElementById('page-queue');
-    const actions = document.getElementById('scan-actions');
-    const btn     = document.getElementById('extract-btn');
-    const dropZone = document.getElementById('drop-zone');
+    const list         = document.getElementById('page-list');
+    const queue        = document.getElementById('page-queue');
+    const actions      = document.getElementById('scan-actions');
+    const btn          = document.getElementById('extract-btn');
+    const dropZone     = document.getElementById('drop-zone');
+    const initActions  = document.querySelector('.initial-actions');
 
     if (state.pages.length === 0) {
       queue.classList.remove('has-pages');
       actions.style.display = 'none';
       btn.classList.remove('visible');
-      dropZone.style.display = 'block';
+      dropZone.style.display = '';
+      if (initActions) initActions.style.display = 'flex';
       return;
     }
 
-    // Hide big drop zone once pages are queued, show compact actions
+    // Once pages are queued: hide big drop zone + initial camera, show compact row
     dropZone.style.display = 'none';
+    if (initActions) initActions.style.display = 'none';
     queue.classList.add('has-pages');
     actions.style.display = 'flex';
     btn.classList.add('visible');
@@ -2079,7 +2125,7 @@
     if (legend) legend.style.display = 'none';
     // Reset page queue
     state.pages = [];
-    renderPageQueue();
+    renderPageQueue(); // this restores drop zone + initial-actions
     // Reset direct text input
     const directInput = document.getElementById('direct-text-input');
     if (directInput) directInput.value = '';
