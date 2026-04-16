@@ -144,22 +144,22 @@
     #upload-zone {
       height: calc(100dvh - 56px);
       max-height: calc(100dvh - 56px);
-      overflow: hidden;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      gap: 1.5rem;
-      transition: opacity 0.4s;
+      justify-content: flex-start;
+      padding: 1.5rem 1.5rem 2rem;
+      gap: 1.25rem;
     }
 
     .hero-heading {
       text-align: center;
+      padding-top: 0.5rem;
     }
     .hero-heading h1 {
       font-family: var(--font-serif);
-      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
       font-weight: 600;
       letter-spacing: -0.03em;
       line-height: 1.15;
@@ -170,50 +170,75 @@
       color: var(--accent);
     }
     .hero-heading p {
-      margin-top: 0.75rem;
-      font-size: 1rem;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
       color: var(--ink-3);
       font-weight: 300;
-      letter-spacing: 0.01em;
     }
 
-    .upload-card {
+    /* ── INPUT MODE TABS ─────────────────────────────────── */
+    .input-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--paper-3);
+      border-radius: var(--radius);
+      overflow: hidden;
       width: 100%;
       max-width: 520px;
+    }
+    .input-tab {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      font-weight: 400;
+      border: none;
+      background: var(--paper-2);
+      color: var(--ink-3);
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .input-tab + .input-tab { border-left: 1px solid var(--paper-3); }
+    .input-tab.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    [data-theme="dark"] .input-tab.active {
+      background: var(--paper-3);
+      color: var(--ink);
+    }
+
+    /* ── SCAN PANEL ──────────────────────────────────────── */
+    #scan-panel {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      width: 100%;
       border: 2px dashed var(--paper-3);
       border-radius: var(--radius-lg);
-      padding: 3rem 2rem;
+      padding: 1.75rem 1.5rem;
       text-align: center;
       cursor: pointer;
       transition: all var(--transition);
       position: relative;
       background: var(--paper-2);
     }
-    .upload-card:hover, .upload-card.dragover {
+    .drop-zone:hover, .drop-zone.dragover {
       border-color: var(--accent);
       background: var(--paper);
       box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
     }
-    .upload-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      display: block;
-      opacity: 0.6;
-    }
-    .upload-card h3 {
-      font-family: var(--font-serif);
-      font-size: 1.1rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      color: var(--ink);
-    }
-    .upload-card p {
-      font-size: 0.85rem;
-      color: var(--ink-3);
-      line-height: 1.6;
-    }
-    .upload-card input[type="file"] {
+    .drop-zone input[type="file"] {
       position: absolute;
       inset: 0;
       opacity: 0;
@@ -221,6 +246,228 @@
       width: 100%;
       height: 100%;
     }
+    .upload-icon {
+      font-size: 1.8rem;
+      margin-bottom: 0.6rem;
+      display: block;
+      opacity: 0.55;
+    }
+    .drop-zone h3 {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 0.3rem;
+      color: var(--ink);
+    }
+    .drop-zone p {
+      font-size: 0.8rem;
+      color: var(--ink-3);
+      line-height: 1.5;
+    }
+
+    /* Page queue */
+    #page-queue {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    #page-queue.has-pages { display: flex; }
+
+    .page-queue-label {
+      font-size: 0.75rem;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 500;
+    }
+
+    .page-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .page-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: var(--paper);
+      transition: all var(--transition);
+    }
+    .page-item:hover { border-color: var(--paper-3); box-shadow: var(--shadow-sm); }
+
+    .page-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+    }
+    [data-theme="dark"] .page-num { background: var(--paper-3); color: var(--ink); }
+
+    .page-thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid var(--paper-3);
+      flex-shrink: 0;
+    }
+
+    .page-name {
+      flex: 1;
+      font-size: 0.82rem;
+      color: var(--ink-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page-remove {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--ink-3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .page-remove:hover { background: var(--warn); color: white; }
+
+    /* Add more / camera row */
+    .scan-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-add-page {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius);
+      border: 1px dashed var(--paper-3);
+      background: transparent;
+      color: var(--ink-3);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .btn-add-page input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .btn-add-page:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-camera {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      color: var(--ink-3);
+      font-family: var(--font-ui);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-camera:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+    /* Extract button */
+    #extract-btn {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    #extract-btn.visible { display: flex; }
+    #extract-btn:hover { background: var(--accent-2); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    /* ── TYPE PANEL ──────────────────────────────────────── */
+    #type-panel {
+      display: none;
+      width: 100%;
+      max-width: 520px;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    #type-panel.active { display: flex; }
+
+    #direct-text-input {
+      width: 100%;
+      min-height: 200px;
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--paper-3);
+      background: var(--paper-2);
+      color: var(--ink);
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      line-height: 1.8;
+      resize: vertical;
+      outline: none;
+      caret-color: var(--accent);
+      transition: border-color var(--transition);
+    }
+    #direct-text-input:focus { border-color: var(--accent); }
+    #direct-text-input::placeholder { color: var(--ink-3); opacity: 0.55; }
+
+    #use-typed-btn {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-ui);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    #use-typed-btn:hover { background: var(--accent-2); transform: translateY(-1px); }
+    #use-typed-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
     .upload-divider {
       display: flex;
@@ -238,28 +485,6 @@
       flex: 1;
       height: 1px;
       background: var(--paper-3);
-    }
-
-    .btn-camera {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: var(--radius);
-      border: 1px solid var(--paper-3);
-      background: var(--paper-2);
-      color: var(--ink-2);
-      font-family: var(--font-ui);
-      font-size: 0.9rem;
-      font-weight: 400;
-      cursor: pointer;
-      transition: all var(--transition);
-      letter-spacing: 0.01em;
-    }
-    .btn-camera:hover {
-      background: var(--ink);
-      color: var(--paper);
-      border-color: var(--ink);
     }
 
     /* ── EDITOR WORKSPACE ────────────────────────────────── */
@@ -993,22 +1218,66 @@
   <div id="upload-zone">
     <div class="hero-heading">
       <h1>Your words,<br /><em>exactly as written.</em></h1>
-      <p>Scan handwritten text. Edit in your voice. Let AI suggest — never replace.</p>
+      <p>Scan handwriting or type directly. AI assists — never replaces.</p>
     </div>
 
-    <div class="upload-card" id="drop-zone">
-      <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)" />
-      <span class="upload-icon">🖼</span>
-      <h3>Drop your photo here</h3>
-      <p>Drag & drop or click to upload a photo of your handwritten text.<br/>JPG, PNG, HEIC supported.</p>
+    <!-- Mode tabs -->
+    <div class="input-tabs">
+      <button class="input-tab active" id="tab-scan" onclick="switchInputTab('scan')">
+        🖼 Scan Pages
+      </button>
+      <button class="input-tab" id="tab-type" onclick="switchInputTab('type')">
+        ✏️ Type Directly
+      </button>
     </div>
 
-    <div class="upload-divider">or</div>
+    <!-- ── SCAN PANEL ── -->
+    <div id="scan-panel">
+      <!-- Drop zone for first page -->
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" multiple onchange="handleFileSelect(event)" />
+        <span class="upload-icon">🖼</span>
+        <h3>Drop your pages here</h3>
+        <p>Drag & drop or click to upload.<br/>Select multiple files at once, or add pages one by one.</p>
+      </div>
 
-    <button class="btn-camera" onclick="triggerCamera()">
-      <span>📷</span> Use Camera
-    </button>
-    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleFileSelect(event)" />
+      <!-- Page queue (shown once pages are added) -->
+      <div id="page-queue">
+        <span class="page-queue-label">Pages — in order</span>
+        <div class="page-list" id="page-list"></div>
+      </div>
+
+      <!-- Add more / camera row -->
+      <div class="scan-actions" id="scan-actions" style="display:none">
+        <button class="btn-add-page">
+          <input type="file" id="add-page-input" accept="image/*" multiple onchange="handleAddPage(event)" />
+          + Add page
+        </button>
+        <button class="btn-camera" onclick="triggerCamera()">
+          📷 Camera
+        </button>
+      </div>
+
+      <!-- Extract button -->
+      <button id="extract-btn" onclick="startExtraction()">
+        Extract Text
+      </button>
+    </div>
+
+    <!-- ── TYPE PANEL ── -->
+    <div id="type-panel">
+      <textarea
+        id="direct-text-input"
+        placeholder="Type or paste your text here — exactly as you want it. You can still use AI prompts to refine it."
+        spellcheck="false"
+        oninput="onDirectTextInput()"
+      ></textarea>
+      <button id="use-typed-btn" onclick="useTypedText()" disabled>
+        Use This Text →
+      </button>
+    </div>
+
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleAddPage(event)" />
   </div>
 
   <!-- WORKSPACE -->
@@ -1220,13 +1489,15 @@
     originalText: '',
     aiText: '',
     promptText: '',
-    sourceImageSrc: null,
+    sourceImageSrc: null,       // first page image for source panel
+    pages: [],                  // [{ file, src, name }] — the page queue
     wordConfidence: null,
     uncertainWords: [],
     grammarErrors: [],
     isGenerating: false,
     focusedPanel: null,
     deferredInstall: null,
+    inputTab: 'scan',
   };
 
   // ── INIT ───────────────────────────────────────────────
@@ -1236,6 +1507,7 @@
     setupSaveCheckboxes();
     setupInstallBanner();
     updateThemeIcon();
+    switchInputTab('scan');
   });
 
   // ── THEME ──────────────────────────────────────────────
@@ -1252,6 +1524,29 @@
     document.getElementById('theme-toggle').textContent = state.theme === 'dark' ? '☀' : '☽';
   }
 
+  // ── INPUT TAB SWITCHING ───────────────────────────────
+  function switchInputTab(tab) {
+    state.inputTab = tab;
+    document.getElementById('tab-scan').classList.toggle('active', tab === 'scan');
+    document.getElementById('tab-type').classList.toggle('active', tab === 'type');
+    document.getElementById('scan-panel').style.display = tab === 'scan' ? 'flex' : 'none';
+    document.getElementById('type-panel').classList.toggle('active', tab === 'type');
+  }
+
+  // ── DIRECT TEXT INPUT ──────────────────────────────────
+  function onDirectTextInput() {
+    const val = document.getElementById('direct-text-input').value.trim();
+    document.getElementById('use-typed-btn').disabled = val.length === 0;
+  }
+  function useTypedText() {
+    const text = document.getElementById('direct-text-input').value.trim();
+    if (!text) return;
+    state.uncertainWords = [];
+    state.grammarErrors  = [];
+    state.sourceImageSrc = null;
+    showWorkspace(null, text);
+  }
+
   // ── DRAG AND DROP ──────────────────────────────────────
   function setupDragDrop() {
     const zone = document.getElementById('drop-zone');
@@ -1260,29 +1555,130 @@
     zone.addEventListener('drop', e => {
       e.preventDefault();
       zone.classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('image/')) processImage(file);
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      if (files.length) addPagesToQueue(files);
     });
   }
 
-  // ── FILE / CAMERA ──────────────────────────────────────
+  // ── FILE INPUTS ────────────────────────────────────────
   function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) processImage(file);
+    const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) addPagesToQueue(files);
+    event.target.value = '';
+  }
+  function handleAddPage(event) {
+    const files = Array.from(event.target.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) addPagesToQueue(files);
+    event.target.value = '';
   }
   function triggerCamera() {
     document.getElementById('camera-input').click();
   }
 
-  // ── PROCESS IMAGE ──────────────────────────────────────
-  function processImage(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      state.sourceImageSrc = e.target.result;
-      showOCRLoading(true);
-      runOCR(e.target.result);
-    };
-    reader.readAsDataURL(file);
+  // ── PAGE QUEUE ─────────────────────────────────────────
+  function addPagesToQueue(files) {
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.pages.push({ file, src: e.target.result, name: file.name });
+        renderPageQueue();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderPageQueue() {
+    const list    = document.getElementById('page-list');
+    const queue   = document.getElementById('page-queue');
+    const actions = document.getElementById('scan-actions');
+    const btn     = document.getElementById('extract-btn');
+    const dropZone = document.getElementById('drop-zone');
+
+    if (state.pages.length === 0) {
+      queue.classList.remove('has-pages');
+      actions.style.display = 'none';
+      btn.classList.remove('visible');
+      dropZone.style.display = 'block';
+      return;
+    }
+
+    // Hide big drop zone once pages are queued, show compact actions
+    dropZone.style.display = 'none';
+    queue.classList.add('has-pages');
+    actions.style.display = 'flex';
+    btn.classList.add('visible');
+
+    // Render page items
+    list.innerHTML = '';
+    state.pages.forEach((page, i) => {
+      const item = document.createElement('div');
+      item.className = 'page-item';
+      item.innerHTML = \`
+        <span class="page-num">\${i + 1}</span>
+        <img class="page-thumb" src="\${page.src}" alt="Page \${i + 1}" />
+        <span class="page-name">\${page.name}</span>
+        <button class="page-remove" onclick="removePage(\${i})" title="Remove page">✕</button>
+      \`;
+      list.appendChild(item);
+    });
+
+    // Update extract button label
+    btn.innerHTML = state.pages.length === 1
+      ? 'Extract Text'
+      : \`Extract \${state.pages.length} Pages\`;
+  }
+
+  function removePage(index) {
+    state.pages.splice(index, 1);
+    renderPageQueue();
+  }
+
+  // ── EXTRACTION ENTRY POINT ─────────────────────────────
+  async function startExtraction() {
+    if (state.pages.length === 0) return;
+    showOCRLoading(true);
+    state.sourceImageSrc = state.pages[0].src;
+    updateOCRStatus(\`Reading page 1 of \${state.pages.length}…\`);
+
+    try {
+      const allTexts        = [];
+      const allUncertain    = [];
+      const allGrammarErrors = [];
+
+      for (let i = 0; i < state.pages.length; i++) {
+        updateOCRStatus(\`Reading page \${i + 1} of \${state.pages.length}…\`);
+        const page = state.pages[i];
+        const base64 = page.src.split(',')[1];
+        const mime   = page.src.split(';')[0].split(':')[1] || 'image/jpeg';
+
+        const response = await fetch('/api/ocr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64, mimeType: mime })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || \`Page \${i + 1} failed\`);
+
+        allTexts.push(data.text || '');
+        (data.uncertainWords || []).forEach(w => allUncertain.push(w));
+        (data.grammarErrors  || []).forEach(e => allGrammarErrors.push(e));
+      }
+
+      // Join pages with a blank line between them (silent break)
+      const fullText = allTexts.join('\n\n');
+
+      state.uncertainWords = [...new Set(allUncertain)];
+      state.grammarErrors  = [...new Set(allGrammarErrors)];
+      state.wordConfidence = null;
+
+      showWorkspace(state.sourceImageSrc, fullText);
+
+    } catch (err) {
+      showOCRLoading(false);
+      showToast('Could not read image — check connection or try again');
+      console.error('Extraction error:', err);
+    }
   }
 
   function showOCRLoading(show) {
@@ -1290,44 +1686,6 @@
     el.classList.toggle('active', show);
   }
 
-  // ── OCR via Gemini Vision (/api/ocr) ──────────────────
-  async function runOCR(imageSrc) {
-    try {
-      updateOCRStatus('Reading your handwriting…');
-
-      const base64Data = imageSrc.split(',')[1];
-      const mimeType = imageSrc.split(';')[0].split(':')[1] || 'image/jpeg';
-
-      const response = await fetch('/api/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64Data, mimeType })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `Server error ${response.status}`);
-      }
-
-      const rawText = data.text || '';
-      if (!rawText) throw new Error('No text returned');
-
-      // Store uncertainty and grammar data
-      state.uncertainWords = data.uncertainWords || [];
-      state.grammarErrors  = data.grammarErrors  || [];
-      state.wordConfidence = null;
-    state.uncertainWords = [];
-    state.grammarErrors = []; // not used in new approach
-
-      showWorkspace(imageSrc, rawText);
-
-    } catch (err) {
-      showOCRLoading(false);
-      showToast('Could not read image — check connection or try again');
-      console.error('OCR error:', err);
-    }
-  }
 
   function updateOCRStatus(msg) {
     const el = document.getElementById('ocr-loading-sub');
@@ -1347,38 +1705,48 @@
     document.getElementById('save-btn').style.display = 'flex';
     document.getElementById('new-scan-btn').style.display = 'flex';
 
-    // Source preview
+    // Source preview — hide panel if no image (typed text)
+    const sourcePanel = document.getElementById('panel-source');
     const preview = document.getElementById('source-preview');
-    preview.classList.remove('empty');
-    preview.innerHTML = `<img src="${imageSrc}" alt="Scanned document" />`;
-    document.getElementById('source-status').textContent = 'Loaded';
-
-    // Collapse source panel by default
-    togglePanel('panel-source', true);
+    if (imageSrc) {
+      sourcePanel.style.display = '';
+      preview.classList.remove('empty');
+      // Show all page thumbnails if multi-page
+      if (state.pages.length > 1) {
+        const thumbs = state.pages.map((p, i) =>
+          `<div style="display:inline-block;margin:0.25rem">
+            <div style="font-size:0.65rem;color:var(--ink-3);text-align:center;margin-bottom:2px">Page ${i+1}</div>
+            <img src="${p.src}" style="height:80px;border-radius:4px;border:1px solid var(--paper-3)" />
+          </div>`
+        ).join('');
+        preview.innerHTML = `<div style="display:flex;flex-wrap:wrap;padding:0.5rem;gap:0.25rem">${thumbs}</div>`;
+      } else {
+        preview.innerHTML = `<img src="${imageSrc}" alt="Scanned document" />`;
+      }
+      document.getElementById('source-status').textContent =
+        state.pages.length > 1 ? `${state.pages.length} pages` : 'Loaded';
+      togglePanel('panel-source', true);
+    } else {
+      // No image — hide source panel entirely
+      sourcePanel.style.display = 'none';
+    }
 
     // Set original text
     const textarea = document.getElementById('original-text');
     textarea.value = rawText;
     state.originalText = rawText;
 
-    // Render with highlights
     renderOriginalWithHighlights(rawText);
     updateOriginalCharCount();
 
-    // Enable generate
     document.getElementById('generate-btn').disabled = rawText.trim().length === 0;
 
-    // Show the render layer instead of textarea
-    // (we keep textarea for editing, render layer for display)
-    // Actually keep textarea visible for editing
     if (state.uncertainWords && state.uncertainWords.length > 0) {
-      showToast(`⚠ ${state.uncertainWords.length} word(s) may need your review`);
-    } else {
+      showToast(`⚠ ${state.uncertainWords.length} unclear word(s) highlighted`);
+    } else if (imageSrc) {
       showToast('✓ Text extracted successfully');
     }
   }
-
-  // Escape HTML for safe injection into highlight overlay
   function escapeHtml(str) {
     return str
       .replace(/&/g, '&amp;')
@@ -1709,6 +2077,19 @@
     if (hl) hl.innerHTML = '';
     const legend = document.getElementById('uncertain-legend');
     if (legend) legend.style.display = 'none';
+    // Reset page queue
+    state.pages = [];
+    renderPageQueue();
+    // Reset direct text input
+    const directInput = document.getElementById('direct-text-input');
+    if (directInput) directInput.value = '';
+    const useBtn = document.getElementById('use-typed-btn');
+    if (useBtn) useBtn.disabled = true;
+    // Reset to scan tab
+    switchInputTab('scan');
+    // Show source panel again
+    const sourcePanel = document.getElementById('panel-source');
+    if (sourcePanel) sourcePanel.style.display = '';
     document.getElementById('generate-btn').innerHTML = '<span>✦</span> Generate';
     document.getElementById('source-status').textContent = '—';
     document.getElementById('ai-model-tag').textContent = '—';
