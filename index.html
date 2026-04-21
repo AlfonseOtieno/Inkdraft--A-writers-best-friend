@@ -662,7 +662,7 @@
     .panel-title.original .panel-dot { background: var(--accent); }
     .panel-title.source .panel-dot { background: var(--ink-3); }
     .panel-title.prompt .panel-dot { background: #8b6914; }
-    .panel-title.ai .panel-dot { background: var(--ai-accent); }
+    .panel-title.critique .panel-dot { background: var(--ai-accent); }
 
     .panel-controls {
       display: flex;
@@ -907,26 +907,7 @@
     #prompt-input:focus { border-color: var(--ai-accent); }
     #prompt-input::placeholder { color: var(--ink-3); opacity: 0.5; }
 
-    .prompt-suggestions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-    .prompt-tag {
-      padding: 0.3rem 0.65rem;
-      border-radius: 20px;
-      border: 1px solid var(--paper-3);
-      background: var(--paper);
-      color: var(--ink-3);
-      font-size: 0.76rem;
-      cursor: pointer;
-      transition: all var(--transition);
-    }
-    .prompt-tag:hover {
-      border-color: var(--ai-accent);
-      color: var(--ai-accent);
-      background: var(--ai-light);
-    }
+
 
     /* ── AI TEXT PANEL ───────────────────────────────────── */
     .ai-panel-body {
@@ -937,15 +918,28 @@
     #ai-text-display {
       flex: 1;
       padding: 1.25rem;
-      font-family: var(--font-mono);
-      font-size: 0.92rem;
-      line-height: 1.85;
+      font-family: var(--font-ui);
+      font-size: 0.88rem;
+      line-height: 1.75;
       color: var(--ink);
       white-space: pre-wrap;
       word-break: break-word;
       overflow-y: auto;
       min-height: 260px;
       position: relative;
+    }
+    /* Critique renders with readable headings */
+    #ai-text-display strong,
+    #ai-text-display b { font-weight: 600; color: var(--ink); }
+    #ai-text-display h1,
+    #ai-text-display h2,
+    #ai-text-display h3 {
+      font-family: var(--font-serif);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.35rem;
+      color: var(--ink-2);
     }
     #ai-text-display.empty {
       display: flex;
@@ -1242,10 +1236,10 @@
       <span class="nav-logo-dot"></span>
     </a>
     <div class="nav-actions">
-      <button id="install-nav-btn" onclick="installPWA()" title="Install Inkdraft">⊕ Install</button>
-      <button class="btn-icon" id="theme-toggle" title="Toggle theme" onclick="toggleTheme()">☀</button>
-      <button class="btn-icon" id="save-btn" title="Save session" onclick="openSaveModal()" style="display:none">⬇</button>
-      <button class="btn-icon" id="new-scan-btn" title="New scan" onclick="resetToUpload()" style="display:none">+</button>
+      <button id="install-nav-btn" onclick="installPWA()" title="Install Inkdraft">Install</button>
+      <button class="btn-icon" id="theme-toggle" title="Toggle theme" onclick="toggleTheme()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+      <button class="btn-icon" id="save-btn" title="Save session" onclick="openSaveModal()" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      <button class="btn-icon" id="new-scan-btn" title="New scan" onclick="resetToUpload()" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>
   </nav>
 
@@ -1259,10 +1253,10 @@
     <!-- Mode tabs -->
     <div class="input-tabs">
       <button class="input-tab active" id="tab-scan" onclick="switchInputTab('scan')">
-        🖼 Scan Pages
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Scan Pages
       </button>
       <button class="input-tab" id="tab-type" onclick="switchInputTab('type')">
-        ✏️ Type Directly
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Type Directly
       </button>
     </div>
 
@@ -1271,7 +1265,7 @@
       <!-- Drop zone for first page -->
       <div class="drop-zone" id="drop-zone">
         <input type="file" id="file-input" accept="image/*" multiple onchange="handleFileSelect(event)" />
-        <span class="upload-icon">🖼</span>
+        <span class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
         <h3>Drop your pages here</h3>
         <p>Drag & drop or click to upload.<br/>Select multiple files at once, or add pages one by one.</p>
       </div>
@@ -1279,7 +1273,7 @@
       <!-- Camera always visible below drop zone -->
       <div class="initial-actions">
         <button class="btn-camera" onclick="triggerCamera()">
-          📷 Use Camera
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg> Use Camera
         </button>
       </div>
 
@@ -1295,9 +1289,7 @@
           <input type="file" id="add-page-input" accept="image/*" multiple onchange="handleAddPage(event)" />
           + Add page
         </button>
-        <button class="btn-camera-sm" onclick="triggerCamera()">
-          📷
-        </button>
+        <button class="btn-camera-sm" onclick="triggerCamera()" title="Use Camera"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
       </div>
 
       <!-- Extract button -->
@@ -1315,7 +1307,7 @@
         oninput="onDirectTextInput()"
       ></textarea>
       <button id="use-typed-btn" onclick="useTypedText()" disabled>
-        Use This Text →
+        Use This Text
       </button>
     </div>
 
@@ -1329,8 +1321,8 @@
         <span style="font-family:var(--font-serif);font-size:0.9rem;color:var(--ink-3);font-style:italic;">Session active</span>
       </div>
       <div class="toolbar-right">
-        <button class="btn-ghost" onclick="copyText('original')">⎘ Copy original</button>
-        <button class="btn-ghost" onclick="copyText('ai')">⎘ Copy AI</button>
+        <button class="btn-ghost" onclick="copyText('original')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy original</button>
+        
       </div>
     </div>
 
@@ -1366,8 +1358,8 @@
           </span>
           <div class="panel-controls">
             <span class="char-count" id="original-char-count">0 chars</span>
-            <button class="panel-btn" onclick="event.stopPropagation(); copyText('original')" title="Copy">⎘</button>
-            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-original')" title="Focus">⛶</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); copyText('original')" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-original')" title="Focus"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
             <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-original')" title="Collapse">
               <span id="panel-original-chevron">▲</span>
             </button>
@@ -1414,19 +1406,12 @@
         </div>
         <div class="panel-body">
           <div class="prompt-body">
-            <p class="prompt-label">Tell the AI how to approach your text. Leave the meaning alone — only style, tone, or structure.</p>
-            <textarea id="prompt-input" placeholder="e.g. Remove repetition and tighten the sentences, but keep my voice intact." rows="3"></textarea>
-            <div class="prompt-suggestions">
-              <span class="prompt-tag" onclick="appendPrompt('Remove repetition')">Remove repetition</span>
-              <span class="prompt-tag" onclick="appendPrompt('Make it more philosophical')">More philosophical</span>
-              <span class="prompt-tag" onclick="appendPrompt('Tighten the sentences')">Tighten sentences</span>
-              <span class="prompt-tag" onclick="appendPrompt('Simplify language')">Simplify language</span>
-              <span class="prompt-tag" onclick="appendPrompt('Add more depth')">Add depth</span>
-              <span class="prompt-tag" onclick="appendPrompt('Fix grammar only, change nothing else')">Grammar only</span>
-            </div>
+            <p class="prompt-label">Tell the editor what to evaluate. Be specific — grammar, depth, repetition, argument strength, references, clarity, or anything else you want examined.</p>
+            <textarea id="prompt-input" placeholder="e.g. Check my grammar and flag repetition. Does my argument flow? Are there any weak sections?" rows="3"></textarea>
+
             <div style="display:flex;justify-content:flex-end;">
               <button class="btn-primary btn-ai" id="generate-btn" onclick="generateAI()" disabled>
-                <span>✦</span> Generate
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Analyse
               </button>
             </div>
           </div>
@@ -1436,14 +1421,14 @@
       <!-- AI TEXT PANEL -->
       <div class="panel" id="panel-ai">
         <div class="panel-header" onclick="togglePanel('panel-ai')">
-          <span class="panel-title ai">
+          <span class="panel-title critique">
             <span class="panel-dot"></span>
-            Inkdraft AI
+            Critique
           </span>
           <div class="panel-controls">
             <span class="char-count" id="ai-char-count">0 chars</span>
-            <button class="panel-btn" onclick="event.stopPropagation(); copyText('ai')" title="Copy">⎘</button>
-            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-ai')" title="Focus">⛶</button>
+            <button class="panel-btn" onclick="event.stopPropagation(); copyText('ai')" title="Copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+            <button class="panel-btn" onclick="event.stopPropagation(); focusPanel('panel-ai')" title="Focus"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
             <button class="panel-btn" onclick="event.stopPropagation(); togglePanel('panel-ai')" title="Collapse">
               <span id="panel-ai-chevron">▲</span>
             </button>
@@ -1451,11 +1436,10 @@
         </div>
         <div class="panel-body ai-panel-body">
           <div id="ai-text-display" class="empty">
-            <span>Write a prompt above and press Generate.<br/>AI will type here in real time.</span>
+            <span>Write your evaluation prompt and press Analyse.<br/>The editor's critique will appear here.</span>
           </div>
           <div class="ai-footer">
             <span class="ai-model-tag" id="ai-model-tag">—</span>
-            <button class="btn-ghost" style="font-size:0.78rem;" onclick="copyText('ai')">⎘ Copy</button>
           </div>
         </div>
       </div>
@@ -1486,12 +1470,12 @@
             <div class="save-item-desc">The scanned or typed version, as-is</div>
           </div>
         </label>
-        <label class="save-item checked" id="save-item-ai">
+        <label class="save-item" id="save-item-ai">
           <input type="checkbox" id="save-ai" />
           <span class="save-checkbox"></span>
           <div>
-            <div class="save-item-label">AI Generated Version</div>
-            <div class="save-item-desc">The AI suggestion based on your prompt</div>
+            <div class="save-item-label">Editor Critique</div>
+            <div class="save-item-desc">The AI editor's notes and recommendations</div>
           </div>
         </label>
         <label class="save-item" id="save-item-prompt">
@@ -1513,7 +1497,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" onclick="closeSaveModal()">Cancel</button>
-        <button class="btn-primary" onclick="executeSave()">⬇ Save Selected</button>
+        <button class="btn-primary" onclick="executeSave()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save Selected</button>
       </div>
     </div>
   </div>
@@ -1529,7 +1513,7 @@
   const state = {
     theme: localStorage.getItem('inkdraft-theme') || 'light',
     originalText: '',
-    aiText: '',
+    critiqueText: '',
     sourceImageSrc: null,
     pages: [],
     uncertainWords: [],
@@ -1541,7 +1525,7 @@
   };
 
   // ── INIT ───────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', function() {
     applyTheme(state.theme);
     setupDragDrop();
     setupSaveCheckboxes();
@@ -1561,7 +1545,14 @@
     document.documentElement.setAttribute('data-theme', t);
   }
   function updateThemeIcon() {
-    document.getElementById('theme-toggle').textContent = state.theme === 'dark' ? '☀' : '☽';
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    // Sun icon for dark mode (click to go light), moon for light mode (click to go dark)
+    if (state.theme === 'dark') {
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    } else {
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    }
   }
 
   // ── INPUT TAB SWITCHING ────────────────────────────────
@@ -1575,11 +1566,11 @@
 
   // ── DIRECT TEXT INPUT ──────────────────────────────────
   function onDirectTextInput() {
-    const val = document.getElementById('direct-text-input').value.trim();
+    var val = document.getElementById('direct-text-input').value.trim();
     document.getElementById('use-typed-btn').disabled = val.length === 0;
   }
   function useTypedText() {
-    const text = document.getElementById('direct-text-input').value.trim();
+    var text = document.getElementById('direct-text-input').value.trim();
     if (!text) return;
     state.uncertainWords = [];
     state.grammarErrors = [];
@@ -1589,7 +1580,7 @@
 
   // ── DRAG AND DROP ──────────────────────────────────────
   function setupDragDrop() {
-    const zone = document.getElementById('drop-zone');
+    var zone = document.getElementById('drop-zone');
     if (!zone) return;
     zone.addEventListener('dragover', function(e) {
       e.preventDefault();
@@ -1601,7 +1592,7 @@
     zone.addEventListener('drop', function(e) {
       e.preventDefault();
       zone.classList.remove('dragover');
-      const files = Array.from(e.dataTransfer.files).filter(function(f) {
+      var files = Array.from(e.dataTransfer.files).filter(function(f) {
         return f.type.startsWith('image/');
       });
       if (files.length) addPagesToQueue(files);
@@ -1610,14 +1601,14 @@
 
   // ── FILE INPUTS ────────────────────────────────────────
   function handleFileSelect(event) {
-    const files = Array.from(event.target.files).filter(function(f) {
+    var files = Array.from(event.target.files).filter(function(f) {
       return f.type.startsWith('image/');
     });
     if (files.length) addPagesToQueue(files);
     event.target.value = '';
   }
   function handleAddPage(event) {
-    const files = Array.from(event.target.files).filter(function(f) {
+    var files = Array.from(event.target.files).filter(function(f) {
       return f.type.startsWith('image/');
     });
     if (files.length) addPagesToQueue(files);
@@ -1630,7 +1621,7 @@
   // ── PAGE QUEUE ─────────────────────────────────────────
   function addPagesToQueue(files) {
     files.forEach(function(file) {
-      const reader = new FileReader();
+      var reader = new FileReader();
       reader.onload = function(e) {
         state.pages.push({ file: file, src: e.target.result, name: file.name });
         renderPageQueue();
@@ -1640,12 +1631,12 @@
   }
 
   function renderPageQueue() {
-    const list = document.getElementById('page-list');
-    const queue = document.getElementById('page-queue');
-    const actions = document.getElementById('scan-actions');
-    const btn = document.getElementById('extract-btn');
-    const dropZone = document.getElementById('drop-zone');
-    const initActions = document.querySelector('.initial-actions');
+    var list = document.getElementById('page-list');
+    var queue = document.getElementById('page-queue');
+    var actions = document.getElementById('scan-actions');
+    var btn = document.getElementById('extract-btn');
+    var dropZone = document.getElementById('drop-zone');
+    var initActions = document.querySelector('.initial-actions');
 
     if (state.pages.length === 0) {
       queue.classList.remove('has-pages');
@@ -1664,26 +1655,31 @@
 
     list.innerHTML = '';
     state.pages.forEach(function(page, i) {
-      const item = document.createElement('div');
+      var item = document.createElement('div');
       item.className = 'page-item';
-      const num = document.createElement('span');
+
+      var num = document.createElement('span');
       num.className = 'page-num';
       num.textContent = i + 1;
-      const thumb = document.createElement('img');
+
+      var thumb = document.createElement('img');
       thumb.className = 'page-thumb';
       thumb.src = page.src;
       thumb.alt = 'Page ' + (i + 1);
-      const name = document.createElement('span');
-      name.className = 'page-name';
-      name.textContent = page.name;
-      const removeBtn = document.createElement('button');
+
+      var pageName = document.createElement('span');
+      pageName.className = 'page-name';
+      pageName.textContent = page.name;
+
+      var removeBtn = document.createElement('button');
       removeBtn.className = 'page-remove';
       removeBtn.title = 'Remove page';
-      removeBtn.textContent = '✕';
-      removeBtn.setAttribute('onclick', 'removePage(' + i + ')');
+      removeBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      removeBtn.onclick = function() { removePage(i); };
+
       item.appendChild(num);
       item.appendChild(thumb);
-      item.appendChild(name);
+      item.appendChild(pageName);
       item.appendChild(removeBtn);
       list.appendChild(item);
     });
@@ -1701,26 +1697,26 @@
     if (state.pages.length === 0) return;
     showOCRLoading(true);
     state.sourceImageSrc = state.pages[0].src;
-    updateOCRStatus('Reading page 1 of ' + state.pages.length + '…');
+    updateOCRStatus('Reading page 1 of ' + state.pages.length + '...');
 
     try {
-      const allTexts = [];
-      const allUncertain = [];
-      const allGrammar = [];
+      var allTexts = [];
+      var allUncertain = [];
+      var allGrammar = [];
 
-      for (let i = 0; i < state.pages.length; i++) {
-        updateOCRStatus('Reading page ' + (i + 1) + ' of ' + state.pages.length + '…');
-        const page = state.pages[i];
-        const base64 = page.src.split(',')[1];
-        const mime = page.src.split(';')[0].split(':')[1] || 'image/jpeg';
+      for (var i = 0; i < state.pages.length; i++) {
+        updateOCRStatus('Reading page ' + (i + 1) + ' of ' + state.pages.length + '...');
+        var page = state.pages[i];
+        var base64 = page.src.split(',')[1];
+        var mime = page.src.split(';')[0].split(':')[1] || 'image/jpeg';
 
-        const response = await fetch('/api/ocr', {
+        var response = await fetch('/api/ocr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageBase64: base64, mimeType: mime })
         });
 
-        const data = await response.json();
+        var data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Page ' + (i + 1) + ' failed');
 
         allTexts.push(data.text || '');
@@ -1728,7 +1724,7 @@
         (data.grammarErrors || []).forEach(function(e) { allGrammar.push(e); });
       }
 
-      const fullText = allTexts.join('\n\n');
+      var fullText = allTexts.join('\n\n');
       state.uncertainWords = allUncertain.filter(function(v, i, a) { return a.indexOf(v) === i; });
       state.grammarErrors = allGrammar.filter(function(v, i, a) { return a.indexOf(v) === i; });
 
@@ -1746,7 +1742,7 @@
     document.getElementById('ocr-loading').classList.toggle('active', show);
   }
   function updateOCRStatus(msg) {
-    const el = document.getElementById('ocr-loading-sub');
+    var el = document.getElementById('ocr-loading-sub');
     if (el) el.textContent = msg;
   }
 
@@ -1758,14 +1754,14 @@
     document.getElementById('save-btn').style.display = 'flex';
     document.getElementById('new-scan-btn').style.display = 'flex';
 
-    const sourcePanel = document.getElementById('panel-source');
-    const preview = document.getElementById('source-preview');
+    var sourcePanel = document.getElementById('panel-source');
+    var preview = document.getElementById('source-preview');
 
     if (imageSrc) {
       sourcePanel.style.display = '';
       preview.classList.remove('empty');
       if (state.pages.length > 1) {
-        let thumbsHtml = '<div style="display:flex;flex-wrap:wrap;padding:0.5rem;gap:0.4rem">';
+        var thumbsHtml = '<div style="display:flex;flex-wrap:wrap;padding:0.5rem;gap:0.4rem">';
         state.pages.forEach(function(p, i) {
           thumbsHtml += '<div style="text-align:center">';
           thumbsHtml += '<div style="font-size:0.65rem;color:var(--ink-3);margin-bottom:2px">Page ' + (i + 1) + '</div>';
@@ -1784,7 +1780,7 @@
       sourcePanel.style.display = 'none';
     }
 
-    const textarea = document.getElementById('original-text');
+    var textarea = document.getElementById('original-text');
     textarea.value = rawText;
     state.originalText = rawText;
     renderOriginalWithHighlights(rawText);
@@ -1792,9 +1788,11 @@
     document.getElementById('generate-btn').disabled = rawText.trim().length === 0;
 
     if (state.uncertainWords && state.uncertainWords.length > 0) {
-      showToast('⚠ ' + state.uncertainWords.length + ' unclear word(s) highlighted');
+      showToast(state.uncertainWords.length + ' unclear word(s) highlighted');
     } else if (imageSrc) {
-      showToast('✓ Text extracted successfully');
+      showToast('Text extracted — write your evaluation prompt and press Analyse');
+    } else {
+      showToast('Text ready — write your evaluation prompt and press Analyse');
     }
   }
 
@@ -1808,18 +1806,18 @@
   }
 
   function syncHighlightScroll() {
-    const ta = document.getElementById('original-text');
-    const hl = document.getElementById('original-highlight');
+    var ta = document.getElementById('original-text');
+    var hl = document.getElementById('original-highlight');
     if (hl) hl.scrollTop = ta.scrollTop;
   }
 
   function renderOriginalWithHighlights(text) {
-    const hl = document.getElementById('original-highlight');
-    const legend = document.getElementById('uncertain-legend');
+    var hl = document.getElementById('original-highlight');
+    var legend = document.getElementById('uncertain-legend');
     if (!hl) return;
 
-    const uncertain = state.uncertainWords || [];
-    const grammar = state.grammarErrors || [];
+    var uncertain = state.uncertainWords || [];
+    var grammar = state.grammarErrors || [];
 
     if (uncertain.length === 0 && grammar.length === 0) {
       hl.innerHTML = '';
@@ -1827,23 +1825,19 @@
       return;
     }
 
-    // Build a lookup for fast matching
-    const uncertainSet = {};
+    var uncertainSet = {};
     uncertain.forEach(function(w) { if (w) uncertainSet[w.toLowerCase()] = true; });
-    const grammarSet = {};
+    var grammarSet = {};
     grammar.forEach(function(w) { if (w) grammarSet[w.toLowerCase()] = true; });
 
-    // Split into words+whitespace tokens, classify each
-    const parts = text.split(' ');
-    let html = '';
+    var parts = text.split(' ');
+    var html = '';
 
     parts.forEach(function(word, idx) {
       if (idx > 0) html += ' ';
       if (!word) return;
-
-      // Handle newlines within a token
       if (word.indexOf('\n') !== -1) {
-        const lines = word.split('\n');
+        var lines = word.split('\n');
         lines.forEach(function(segment, si) {
           if (si > 0) html += '\n';
           html += classifyWord(segment, uncertainSet, grammarSet);
@@ -1856,17 +1850,16 @@
     hl.innerHTML = html;
     if (legend) legend.style.display = 'flex';
 
-    const ta = document.getElementById('original-text');
+    var ta = document.getElementById('original-text');
     ta.removeEventListener('scroll', syncHighlightScroll);
     ta.addEventListener('scroll', syncHighlightScroll, { passive: true });
   }
 
   function classifyWord(word, uncertainSet, grammarSet) {
     if (!word) return '';
-    const safe = escapeHtml(word);
-    // Strip trailing punctuation to check base word
-    const base = word.replace(/[.,!?;:"'()\[\]]+$/, '').toLowerCase();
-    const lower = word.toLowerCase();
+    var safe = escapeHtml(word);
+    var base = word.replace(/[.,!?;:"'()\[\]]+$/, '').toLowerCase();
+    var lower = word.toLowerCase();
     if (grammarSet[lower] || grammarSet[base]) {
       return '<span class="grammar-error">' + safe + '</span>';
     }
@@ -1878,7 +1871,7 @@
 
   // ── ORIGINAL TEXT EVENTS ───────────────────────────────
   function onOriginalInput() {
-    const textarea = document.getElementById('original-text');
+    var textarea = document.getElementById('original-text');
     state.originalText = textarea.value;
     updateOriginalCharCount();
     document.getElementById('generate-btn').disabled = state.originalText.trim().length === 0;
@@ -1886,77 +1879,69 @@
   }
 
   function updateOriginalCharCount() {
-    const count = state.originalText.length;
-    const words = state.originalText.trim() ? state.originalText.trim().split(/\s+/).length : 0;
+    var count = state.originalText.length;
+    var words = state.originalText.trim() ? state.originalText.trim().split(/\s+/).length : 0;
     document.getElementById('original-char-count').textContent = count + ' chars · ' + words + ' words';
   }
 
-  // ── PROMPT SUGGESTIONS ─────────────────────────────────
-  function appendPrompt(text) {
-    const input = document.getElementById('prompt-input');
-    const current = input.value.trim();
-    input.value = current ? current + '. ' + text : text;
-    input.focus();
-  }
-
-  // ── AI GENERATION ──────────────────────────────────────
+  // ── AI CRITIQUE ────────────────────────────────────────
   async function generateAI() {
     if (state.isGenerating) return;
-    const prompt = document.getElementById('prompt-input').value.trim();
-    const original = state.originalText.trim();
-    if (!original) { showToast('Please add your original text first'); return; }
+    var prompt = document.getElementById('prompt-input').value.trim();
+    var original = state.originalText.trim();
+    if (!original) { showToast('Add your text first'); return; }
 
     state.isGenerating = true;
-    const btn = document.getElementById('generate-btn');
+    var btn = document.getElementById('generate-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite"></span> Generating…';
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg> Analysing...';
 
-    const aiDisplay = document.getElementById('ai-text-display');
+    var aiDisplay = document.getElementById('ai-text-display');
     aiDisplay.classList.remove('empty');
     aiDisplay.innerHTML = '<span class="cursor-blink"></span>';
 
     try {
-      const response = await fetch('/api/generate', {
+      var response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ originalText: original, prompt: prompt })
       });
 
-      const data = await response.json();
+      var data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Server error ' + response.status);
 
-      const fullText = data.text || '';
-      state.aiText = fullText;
-      document.getElementById('ai-model-tag').textContent = 'gemini-2.5-flash · inkdraft';
+      // API now returns { critique } not { text }
+      var critique = data.critique || data.text || '';
+      state.critiqueText = critique;
+      document.getElementById('ai-model-tag').textContent = 'Inkdraft Editor';
 
-      await typewriterDisplay(aiDisplay, fullText);
-      updateAICharCount(fullText);
+      await typewriterDisplay(aiDisplay, critique);
 
     } catch (err) {
       aiDisplay.classList.add('empty');
-      aiDisplay.innerHTML = '<span>Generation failed. Check your connection and try again.</span>';
+      aiDisplay.innerHTML = '<span>Critique failed. Check your connection and try again.</span>';
       console.error(err);
     }
 
     state.isGenerating = false;
     btn.disabled = false;
-    btn.innerHTML = '<span>✦</span> Regenerate';
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Re-analyse';
   }
 
   async function typewriterDisplay(element, text) {
     element.innerHTML = '';
-    let i = 0;
-    const chunkSize = 3;
-    const delay = 18;
+    var i = 0;
+    var chunkSize = 3;
+    var delay = 16;
     return new Promise(function(resolve) {
       function tick() {
         if (i >= text.length) { resolve(); return; }
-        const chunk = text.slice(i, i + chunkSize);
+        var chunk = text.slice(i, i + chunkSize);
         i += chunkSize;
-        const old = element.querySelector('.cursor-blink');
+        var old = element.querySelector('.cursor-blink');
         if (old) old.remove();
         element.appendChild(document.createTextNode(chunk));
-        const cursor = document.createElement('span');
+        var cursor = document.createElement('span');
         cursor.className = 'cursor-blink';
         element.appendChild(cursor);
         element.scrollTop = element.scrollHeight;
@@ -1966,55 +1951,49 @@
     });
   }
 
-  function updateAICharCount(text) {
-    const count = text.length;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    document.getElementById('ai-char-count').textContent = count + ' chars · ' + words + ' words';
-  }
-
   // ── COPY ───────────────────────────────────────────────
   function copyText(which) {
-    const text = which === 'original' ? state.originalText : state.aiText;
-    if (!text) { showToast(which === 'original' ? 'No original text yet' : 'No AI text yet'); return; }
+    var text = which === 'original' ? state.originalText : state.critiqueText;
+    if (!text) { showToast('No text to copy'); return; }
     navigator.clipboard.writeText(text).then(function() {
-      showToast('✓ ' + (which === 'original' ? 'Original' : 'AI') + ' text copied');
+      showToast('Copied to clipboard');
     }).catch(function() {
-      const ta = document.createElement('textarea');
+      var ta = document.createElement('textarea');
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      showToast('✓ Copied');
+      showToast('Copied');
     });
   }
 
   // ── PANELS ─────────────────────────────────────────────
   function togglePanel(id, forceCollapse) {
-    const panel = document.getElementById(id);
+    var panel = document.getElementById(id);
     if (!panel) return;
     if (forceCollapse) {
       panel.classList.add('collapsed');
     } else {
       panel.classList.toggle('collapsed');
     }
-    const chevron = document.getElementById(id + '-chevron');
+    var chevron = document.getElementById(id + '-chevron');
     if (chevron) chevron.textContent = panel.classList.contains('collapsed') ? '▼' : '▲';
   }
 
   function focusPanel(id) {
     if (state.focusedPanel === id) {
-      const panel = document.getElementById(id);
+      var panel = document.getElementById(id);
       if (panel) panel.classList.remove('focused');
       state.focusedPanel = null;
       document.body.style.overflow = '';
     } else {
       if (state.focusedPanel) {
-        const prev = document.getElementById(state.focusedPanel);
+        var prev = document.getElementById(state.focusedPanel);
         if (prev) prev.classList.remove('focused');
       }
-      const panel = document.getElementById(id);
-      if (panel) panel.classList.add('focused');
+      var p = document.getElementById(id);
+      if (p) p.classList.add('focused');
       state.focusedPanel = id;
       document.body.style.overflow = 'hidden';
     }
@@ -2023,13 +2002,13 @@
   // ── SAVE MODAL ─────────────────────────────────────────
   function setupSaveCheckboxes() {
     document.querySelectorAll('.save-item').forEach(function(item) {
-      const cb = item.querySelector('input[type="checkbox"]');
+      var cb = item.querySelector('input[type="checkbox"]');
       if (cb && cb.checked) item.classList.add('checked');
       item.addEventListener('click', function(e) {
         if (e.target.tagName === 'INPUT') return;
         cb.checked = !cb.checked;
         item.classList.toggle('checked', cb.checked);
-        const box = item.querySelector('.save-checkbox');
+        var box = item.querySelector('.save-checkbox');
         if (box) box.textContent = cb.checked ? '✓' : '';
       });
     });
@@ -2039,47 +2018,47 @@
   function closeSaveModal() { document.getElementById('save-modal').classList.remove('open'); }
 
   function executeSave() {
-    const saveOriginal = document.getElementById('save-original').checked;
-    const saveAI = document.getElementById('save-ai').checked;
-    const savePrompt = document.getElementById('save-prompt').checked;
-    const saveImage = document.getElementById('save-image').checked;
+    var saveOriginal = document.getElementById('save-original').checked;
+    var saveAI = document.getElementById('save-ai').checked;
+    var savePrompt = document.getElementById('save-prompt').checked;
+    var saveImage = document.getElementById('save-image').checked;
 
     if (!saveOriginal && !saveAI && !savePrompt && !saveImage) {
       showToast('Select at least one item to save');
       return;
     }
 
-    const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
-    let content = 'INKDRAFT SESSION\n' + '─'.repeat(40) + '\n' + timestamp + '\n\n';
+    var timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+    var content = 'INKDRAFT SESSION\n' + timestamp + '\n\n';
 
     if (saveOriginal && state.originalText) {
-      content += 'YOUR ORIGINAL TEXT\n' + '─'.repeat(40) + '\n' + state.originalText + '\n\n';
+      content += 'YOUR TEXT\n' + '─'.repeat(40) + '\n' + state.originalText + '\n\n';
     }
     if (savePrompt) {
-      const p = document.getElementById('prompt-input').value;
-      if (p) content += 'PROMPT USED\n' + '─'.repeat(40) + '\n' + p + '\n\n';
+      var p = document.getElementById('prompt-input').value;
+      if (p) content += 'EVALUATION PROMPT\n' + '─'.repeat(40) + '\n' + p + '\n\n';
     }
-    if (saveAI && state.aiText) {
-      content += 'AI GENERATED VERSION\n' + '─'.repeat(40) + '\n' + state.aiText + '\n\n';
+    if (saveAI && state.critiqueText) {
+      content += 'EDITOR CRITIQUE\n' + '─'.repeat(40) + '\n' + state.critiqueText + '\n\n';
     }
 
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
     a.download = 'inkdraft_' + timestamp + '.txt';
     a.click();
     URL.revokeObjectURL(url);
 
     if (saveImage && state.sourceImageSrc) {
-      const imgA = document.createElement('a');
+      var imgA = document.createElement('a');
       imgA.href = state.sourceImageSrc;
       imgA.download = 'inkdraft_source_' + timestamp + '.jpg';
       imgA.click();
     }
 
     closeSaveModal();
-    showToast('✓ Session saved');
+    showToast('Session saved');
   }
 
   // ── RESET ──────────────────────────────────────────────
@@ -2090,24 +2069,27 @@
     document.getElementById('new-scan-btn').style.display = 'none';
     document.getElementById('original-text').value = '';
     document.getElementById('prompt-input').value = '';
-    document.getElementById('ai-text-display').className = 'empty';
-    document.getElementById('ai-text-display').innerHTML = '<span>Write a prompt above and press Generate.<br/>AI will type here in real time.</span>';
+
+    var aiDisplay = document.getElementById('ai-text-display');
+    aiDisplay.className = 'empty';
+    aiDisplay.innerHTML = '<span>Write your evaluation prompt and press Analyse.<br/>The editor\'s critique will appear here.</span>';
+
     document.getElementById('ai-char-count').textContent = '0 chars';
     document.getElementById('original-char-count').textContent = '0 chars';
     document.getElementById('generate-btn').disabled = true;
-    document.getElementById('generate-btn').innerHTML = '<span>✦</span> Generate';
+    document.getElementById('generate-btn').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Analyse';
     document.getElementById('source-status').textContent = '—';
     document.getElementById('ai-model-tag').textContent = '—';
     document.getElementById('file-input').value = '';
     document.getElementById('camera-input').value = '';
 
-    const hl = document.getElementById('original-highlight');
+    var hl = document.getElementById('original-highlight');
     if (hl) hl.innerHTML = '';
-    const legend = document.getElementById('uncertain-legend');
+    var legend = document.getElementById('uncertain-legend');
     if (legend) legend.style.display = 'none';
 
     state.originalText = '';
-    state.aiText = '';
+    state.critiqueText = '';
     state.sourceImageSrc = null;
     state.uncertainWords = [];
     state.grammarErrors = [];
@@ -2115,27 +2097,27 @@
 
     renderPageQueue();
 
-    const directInput = document.getElementById('direct-text-input');
+    var directInput = document.getElementById('direct-text-input');
     if (directInput) directInput.value = '';
-    const useBtn = document.getElementById('use-typed-btn');
+    var useBtn = document.getElementById('use-typed-btn');
     if (useBtn) useBtn.disabled = true;
 
     switchInputTab('scan');
 
-    const sourcePanel = document.getElementById('panel-source');
+    var sourcePanel = document.getElementById('panel-source');
     if (sourcePanel) sourcePanel.style.display = '';
 
     ['panel-source', 'panel-original', 'panel-prompt', 'panel-ai'].forEach(function(id) {
-      const p = document.getElementById(id);
-      if (p) {
-        p.classList.remove('collapsed');
-        const ch = document.getElementById(id + '-chevron');
+      var panel = document.getElementById(id);
+      if (panel) {
+        panel.classList.remove('collapsed');
+        var ch = document.getElementById(id + '-chevron');
         if (ch) ch.textContent = '▲';
       }
     });
 
     if (state.focusedPanel) {
-      const fp = document.getElementById(state.focusedPanel);
+      var fp = document.getElementById(state.focusedPanel);
       if (fp) fp.classList.remove('focused');
       state.focusedPanel = null;
       document.body.style.overflow = '';
@@ -2145,10 +2127,10 @@
   }
 
   // ── TOAST ──────────────────────────────────────────────
-  let toastTimer;
+  var toastTimer;
   function showToast(msg, duration) {
     duration = duration || 2800;
-    const el = document.getElementById('toast');
+    var el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(toastTimer);
@@ -2160,12 +2142,12 @@
     window.addEventListener('beforeinstallprompt', function(e) {
       e.preventDefault();
       state.deferredInstall = e;
-      const btn = document.getElementById('install-nav-btn');
+      var btn = document.getElementById('install-nav-btn');
       if (btn) btn.classList.add('visible');
     });
     window.addEventListener('appinstalled', function() {
       state.deferredInstall = null;
-      const btn = document.getElementById('install-nav-btn');
+      var btn = document.getElementById('install-nav-btn');
       if (btn) btn.classList.remove('visible');
     });
   }
@@ -2174,7 +2156,7 @@
       state.deferredInstall.prompt();
       state.deferredInstall.userChoice.then(function() {
         state.deferredInstall = null;
-        const btn = document.getElementById('install-nav-btn');
+        var btn = document.getElementById('install-nav-btn');
         if (btn) btn.classList.remove('visible');
       });
     }

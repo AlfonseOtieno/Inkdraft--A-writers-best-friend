@@ -20,20 +20,24 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server." });
   }
 
-  const systemContext = `You are a writing assistant for Inkdraft. Your role is sacred: you must NEVER rewrite the author's text wholesale. You assist, you never replace.
+  const criticPrompt = `You are a literary editor and writing critic for Inkdraft. Your role is to evaluate the writer's work honestly — pointing out what is strong, what is weak, and exactly where improvements can be made.
 
-Rules:
-1. The author's voice, rhythm, and intent must be preserved above all else.
-2. Apply ONLY what the user explicitly requests in their prompt.
-3. If no prompt is given, make light grammar corrections only — change nothing else.
-4. Do not add new ideas, sentences, or meaning that were not in the original.
-5. Output ONLY the improved text — no preamble, no explanation, no commentary.
-6. Preserve paragraph breaks exactly as they appear in the original.
-7. Do not add a title, heading, or sign-off that wasn't in the original.`;
+CRITICAL RULES:
+1. You are an editor, not a ghostwriter. Do NOT rewrite, rephrase, or generate any replacement text.
+2. Do NOT produce a "corrected version" of the writer's work.
+3. Reference specific lines, phrases, or passages from the original text when pointing out issues.
+4. If the writer's work is strong in a particular area, say so clearly and specifically.
+5. If there are no significant problems in an area, do not invent them.
+6. Be honest but constructive. A good editor respects the writer's voice.
+7. Structure your critique clearly with headings based on what the writer asked you to evaluate.
+8. Keep your critique focused ONLY on what the writer has asked you to look at in their prompt.
+9. End with a brief overall assessment — one or two sentences on the writing's current state.
+
+The writer will tell you what to evaluate. Focus only on that. Do not evaluate things they did not ask about.`;
 
   const userMessage = prompt
-    ? `${systemContext}\n\nHere is the author's text:\n\n${originalText}\n\nInstruction: ${prompt}`
-    : `${systemContext}\n\nHere is the author's text. Please correct grammar and spelling only — do not change the voice, style, or meaning:\n\n${originalText}`;
+    ? `${criticPrompt}\n\nHere is the writer's text:\n\n"""\n${originalText}\n"""\n\nWhat the writer wants you to evaluate:\n${prompt}`
+    : `${criticPrompt}\n\nHere is the writer's text:\n\n"""\n${originalText}\n"""\n\nThe writer has not specified what to evaluate. Give a brief general assessment covering: overall clarity, any obvious structural issues, and the strength of the writing voice. Keep it concise.`;
 
   try {
     const upstream = await fetch(
@@ -44,7 +48,7 @@ Rules:
         body: JSON.stringify({
           contents: [{ parts: [{ text: userMessage }] }],
           generationConfig: {
-            temperature: 0.4,
+            temperature: 0.3,
             maxOutputTokens: 2000,
           },
         }),
@@ -53,8 +57,8 @@ Rules:
 
     if (!upstream.ok) {
       const errText = await upstream.text();
-      console.error("Gemini generate error:", errText);
-      return res.status(upstream.status).json({ error: `Gemini API error: ${upstream.status}` });
+      console.error("Gemini critic error:", errText);
+      return res.status(upstream.status).json({ error: "Gemini API error: " + upstream.status });
     }
 
     const data = await upstream.json();
@@ -64,10 +68,10 @@ Rules:
       return res.status(500).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    return res.status(200).json({ text: text.trim() });
+    return res.status(200).json({ critique: text.trim() });
 
   } catch (err) {
-    console.error("Generate handler error:", err);
-    return res.status(500).json({ error: err.message || "Generation failed." });
+    console.error("Critic handler error:", err);
+    return res.status(500).json({ error: err.message || "Critique failed." });
   }
 }
